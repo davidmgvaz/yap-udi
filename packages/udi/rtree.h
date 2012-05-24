@@ -16,17 +16,28 @@ struct Rect
 };
 typedef struct Rect rect_t;
 
+typedef size_t index_t;
+
 struct Branch
 {
   rect_t mbr;
-  void * child; /*void * so user can store whatever he needs, in case
-   of non-leaf ndes it stores the child-pointer*/
+  index_t cld; /*void * so user can store whatever he needs, in case
+   of non-leaf nodes it stores the index of child*/
 };
 typedef struct Branch branch_t;
 
-#define PGSIZE 196
-#define MAXCARD (int)((PGSIZE-(2*sizeof(int)))/ sizeof(struct Branch))
+static const branch_t empty = {{{0.0,0.0,0.0,0.0}},0};
+
+#define EMPTYBRANCH(b) (memcmp((void *) &empty,(void *) &b,sizeof(branch_t)) == 0)
+
+#include "alloc.h"
+#define PAGE_SIZE 168
+#define MAXCARD (int)((PAGE_SIZE-(2*sizeof(int)))/ sizeof(struct Branch))
 #define MINCARD (MAXCARD / 2)
+
+#define NODE(t,index) ((node_t) MGET(t->m,index))
+#define DATA(t,index) ((void *) index)
+#define INDEX(t,node) (MINDEX(t->m,(void *) node))
 
 struct Node
 {
@@ -36,7 +47,16 @@ struct Node
 };
 typedef struct Node * node_t;
 
-typedef node_t rtree_t;
+struct Rtree
+{
+  mmap_t m;
+  index_t index;
+};
+typedef struct Rtree * rtree_t;
+
+#define ROOTNODE(t) (NODE(t,t->index))
+#define ROOTINDEX(t) (t->index)
+
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
@@ -45,10 +65,11 @@ typedef node_t rtree_t;
 typedef int (*SearchHitCallback)(rect_t r, void *data, void *arg);
 
 extern rtree_t RTreeNew (void);
-extern void RTreeInsert (rtree_t *, rect_t, void *);
+extern void RTreeInsert (rtree_t, rect_t, void *);
 extern int RTreeSearch (rtree_t, rect_t, SearchHitCallback, void *);
 extern void RTreeDestroy (rtree_t);
-extern void RTreePrint(node_t);
+extern void RTreePrint(rtree_t, index_t);
+
 extern rect_t RectInit (void);
 
 struct Partition

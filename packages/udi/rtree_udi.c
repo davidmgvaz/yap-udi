@@ -98,7 +98,7 @@ control_t *RtreeUdiInsert (Term term,control_t *control,void *clausule)
       r = RectOfTerm(YAP_ArgOfTerm((*control)[i].arg,term));
       if (!(*control)[i].tree)
         (*control)[i].tree = RTreeNew();
-      RTreeInsert(&(*control)[i].tree,r,clausule);
+      RTreeInsert((*control)[i].tree,r,clausule);
     }
 
   /*  printf("insert %p\n", clausule); */
@@ -129,7 +129,6 @@ void *RtreeUdiSearch (control_t *control)
     YAP_Term t = YAP_A((*control)[i].arg);
     if (YAP_IsAttVar(t))
       {
-	fprintf(stderr,"i=%ld\n",i);
         /*get the constraits rect*/
         Constraints = YAP_AttsOfVar(t);
         /*        Yap_DebugPlWrite(Constraints); */
