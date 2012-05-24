@@ -53,7 +53,7 @@ rtree_t RTreeNew (void)
   assert(t);
   memset((void *) t,0, sizeof(*t));
   
-  t->m = MemoryInit(-1);
+  t->m = MDInit(-1,0);
   t->index = RTreeNewNode(t);
 
   ROOTNODE(t)->level = 0; /*leaf*/
@@ -71,7 +71,7 @@ static size_t RTreeNewNode (rtree_t t)
 {
   index_t index;
 
-  index = MemoryAlloc(t->m);
+  index = MDAlloc(t->m);
 
   {
     node_t n;
@@ -574,73 +574,4 @@ static void RectPrint (rect_t r)
         printf(",");
     }
   printf("]");
-}
-
-/*memory*/
-mmap_t MemoryInit (int fd)
-{
-  mmap_t m;
-
-  m = (mmap_t ) malloc (sizeof(*m));
-  assert(m);
-  memset((void *) m,0, sizeof(*m));
-
-  m->fd = fd;
-
-  return m;
-}
-
-size_t MemoryAlloc (mmap_t m) /*allocs new page returning index*/
-{
-  int r;
-  size_t nsize;
-
-  nsize = m->size + PAGE_SIZE;
-
-  if (m->fd > 2) /*disk based*/
-    {
-      /*strech undelying file*/
-      r = lseek(m->fd, nsize - 1, SEEK_SET);
-      if (r == -1)
-        {
-          printf("error fseek");
-          return -1;
-        }
-      r = write(m->fd, "", 1);
-      if (r == -1)
-        {
-          printf("error write");
-          return -1;
-        }
-
-      /*init mmap*/
-      if (!m->region)
-        {
-          m->region = mmap(0, nsize, PROT_READ | PROT_WRITE,
-                           MAP_SHARED, m->fd, 0);
-        }
-    }
-  else /*memory based*/
-    {
-      /*init mmap*/
-      if (!m->region)
-        {
-          m->region = mmap(0, nsize, PROT_READ | PROT_WRITE,
-                           MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
-        }
-    }
-
-  if (m->size && m->region) /*expand*/
-    {
-      m->region = mremap(m->region, m->size, nsize, MREMAP_MAYMOVE);
-    }
-
-  if (m->region == MAP_FAILED)
-    {
-      printf("error mmap/remap");
-    }
-
-  m->size = nsize;
-
-  return (m->size/PAGE_SIZE - 1);
 }

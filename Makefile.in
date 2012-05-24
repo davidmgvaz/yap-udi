@@ -261,6 +261,7 @@ C_SOURCES= \
 	$(srcdir)/C/udi.c \
 	$(srcdir)/packages/udi/rtree.c \
 	$(srcdir)/packages/udi/rtree_udi.c \
+	$(srcdir)/packages/udi/mdalloc.c \
 	$(srcdir)/C/utilpreds.c $(srcdir)/C/write.c $(srcdir)/console/yap.c \
 	$(srcdir)/C/ypstdio.c \
 	$(srcdir)/BEAM/eam_am.c $(srcdir)/BEAM/eam_showcode.c \
@@ -365,7 +366,7 @@ ENGINE_OBJECTS = \
 	myddas_wkb2prolog.o modules.o other.o   \
 	parser.o qlyr.o qlyw.o save.o scanner.o sort.o stdpreds.o \
 	sysbits.o threads.o tracer.o \
-	udi.o rtree.o rtree_udi.o\
+	udi.o rtree.o rtree_udi.o mdalloc.o \
 	unify.o userpreds.o utilpreds.o \
 	write.o \
 	blobs.o swi.o ypstdio.o $(IOLIB_OBJECTS)  @MPI_OBJS@
@@ -471,6 +472,9 @@ rtree.o: $(srcdir)/packages/udi/rtree.c config.h
 
 rtree_udi.o: $(srcdir)/packages/udi/rtree_udi.c config.h
 	$(CC) -c $(C_INTERF_FLAGS) $(srcdir)/packages/udi/rtree_udi.c -o $@
+
+mdalloc.o: $(srcdir)/packages/udi/mdalloc.c config.h
+	$(CC) -c $(C_INTERF_FLAGS) $(srcdir)/packages/udi/mdalloc.c -o $@
 
 yap.o: $(srcdir)/console/yap.c config.h
 	$(CC) -c $(CFLAGS) -I$(srcdir)/include $(srcdir)/console/yap.c -o $@

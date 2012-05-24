@@ -30,14 +30,15 @@ static const branch_t empty = {{{0.0,0.0,0.0,0.0}},0};
 
 #define EMPTYBRANCH(b) (memcmp((void *) &empty,(void *) &b,sizeof(branch_t)) == 0)
 
-#include "alloc.h"
+#include "mdalloc.h"
+
 #define PAGE_SIZE 168
 #define MAXCARD (int)((PAGE_SIZE-(2*sizeof(int)))/ sizeof(struct Branch))
 #define MINCARD (MAXCARD / 2)
 
-#define NODE(t,index) ((node_t) MGET(t->m,index))
+#define NODE(t,index) ((node_t) MDGET(t->m,index))
 #define DATA(t,index) ((void *) index)
-#define INDEX(t,node) (MINDEX(t->m,(void *) node))
+#define INDEX(t,node) (MDINDEX(t->m,(void *) node))
 
 struct Node
 {
@@ -49,7 +50,7 @@ typedef struct Node * node_t;
 
 struct Rtree
 {
-  mmap_t m;
+  mdalloc_t m;
   index_t index;
 };
 typedef struct Rtree * rtree_t;
