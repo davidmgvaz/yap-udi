@@ -16,6 +16,7 @@ struct Rect
 };
 typedef struct Rect rect_t;
 
+/* TODO: CHECK size_t needs to be the same size as void */
 typedef size_t index_t;
 
 struct Branch
@@ -26,19 +27,14 @@ struct Branch
 };
 typedef struct Branch branch_t;
 
-static const branch_t empty = {{{0.0,0.0,0.0,0.0}},0};
-
-#define EMPTYBRANCH(b) (memcmp((void *) &empty,(void *) &b,sizeof(branch_t)) == 0)
+/*both pointers and indexs are allways > 0*/
+#define EMPTYBRANCH(b) (b.cld == 0)
 
 #include "mdalloc.h"
 
-#define PAGE_SIZE 168
+#define PAGE_SIZE 4096
 #define MAXCARD (int)((PAGE_SIZE-(2*sizeof(int)))/ sizeof(struct Branch))
 #define MINCARD (MAXCARD / 2)
-
-#define NODE(t,index) ((node_t) MDGET(t->m,index))
-#define DATA(t,index) ((void *) index)
-#define INDEX(t,node) (MDINDEX(t->m,(void *) node))
 
 struct Node
 {
@@ -50,14 +46,17 @@ typedef struct Node * node_t;
 
 struct Rtree
 {
-  mdalloc_t m;
+  /* info on the tree structure */
+  size_t maxcard;
+  size_t mincard;
+  
+  /* root node index */
   index_t index;
+
+  /* allocation structure */
+  mdalloc_t m;
 };
 typedef struct Rtree * rtree_t;
-
-#define ROOTNODE(t) (NODE(t,t->index))
-#define ROOTINDEX(t) (t->index)
-
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))

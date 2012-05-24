@@ -45,7 +45,7 @@ mdalloc_t MDInit (int fd, int flags)
           return NULL;
         }
     } 
-  else 
+  else /*memory based*/
     {
       m->size = 0;
       /*size 1 is a hack just to initialize a mmap region*/
@@ -95,13 +95,13 @@ size_t MDAlloc (mdalloc_t m)
       if (r == -1)
         {
           perror("MDAlloc fssek");
-          return -1;
+          return 0;
         }
       r = write(m->fd, "", 1);
       if (r == -1)
         {
           perror("MDAlloc write");
-          return -1;
+          return 0;
         }
     }
 
@@ -110,23 +110,23 @@ size_t MDAlloc (mdalloc_t m)
   if (m->region == MAP_FAILED)
     {
       perror("MDAlloc mremap");
-      return -1;
+      return 0;
     }
 
   m->size = nsize;
-  index = m->size/mdpagesize - 1;
+  index = m->size/mdpagesize;
 
   return index;
 }
 
 inline void * MDGET(mdalloc_t m, size_t index)
 {
-  return (m->region + index * mdpagesize);
+  return (m->region + (index - 1) * mdpagesize);
 }
 
 inline size_t MDINDEX(mdalloc_t m, void * address)
 {
-  return ((address - m->region) / mdpagesize);
+  return ((address - m->region) / mdpagesize + 1);
 }
 
 inline int MDVALID(mdalloc_t m,void * address)
@@ -136,5 +136,5 @@ inline int MDVALID(mdalloc_t m,void * address)
 
 inline int MDVALIDI(mdalloc_t m,size_t index)
 {
-  return ((index >= 0) && (index < m->size / mdpagesize));
+  return ((index > 0) && (index <= m->size / mdpagesize));
 }

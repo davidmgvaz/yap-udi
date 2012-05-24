@@ -15,8 +15,10 @@ struct MDAlloc
 };
 typedef struct MDAlloc * mdalloc_t;
 
+extern long mdpagesize;
+
 /*
- * Memory based allocation: MDInit(0,0);
+ * Memory based allocation: MDInit(0,0); fd and flags will be ignored
  * Disk based allocation: MDInit(fd, flags)
  *   flags: PROT_* from mmap
  *   (must  not  conflict with the open mode of the file)
@@ -30,7 +32,10 @@ extern void MDDestroy (mdalloc_t);
 
 /*
  * Allocates a new page 
- *   returns the index of allocated page
+ *   returns the index of allocated page 
+ *
+ *   indexes are allways >= 1
+ *   0 is used on errors
  */
 extern size_t MDAlloc (mdalloc_t);
 
