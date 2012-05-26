@@ -81,17 +81,18 @@ size_t MDAlloc (mdalloc_t m)
 /*allocs new page returning index*/
 {
   int r;
-  size_t nsize;
+  size_t oldsize;
   size_t index;
 
   assert(m && m->region);
   
-  nsize = m->size + mdpagesize;
+  oldsize = m->size;
+  m->size += mdpagesize;
 
   if (m->fd > 2) /*disk based*/
     {
       /*strech undelying file*/
-      r = lseek(m->fd, nsize - 1, SEEK_SET);
+      r = lseek(m->fd, m->size - 1, SEEK_SET);
       if (r == -1)
         {
           perror("MDAlloc fssek");
@@ -106,27 +107,24 @@ size_t MDAlloc (mdalloc_t m)
     }
 
   /*expand*/
-  m->region = mremap(m->region, m->size, nsize, MREMAP_MAYMOVE);
+  m->region = mremap(m->region, oldsize, m->size, MREMAP_MAYMOVE);
   if (m->region == MAP_FAILED)
     {
       perror("MDAlloc mremap");
       return 0;
     }
 
-  m->size = nsize;
-  index = m->size/mdpagesize;
-
-  return index;
+  return oldsize;
 }
 
 inline void * MDGET(mdalloc_t m, size_t index)
 {
-  return (m->region + (index - 1) * mdpagesize);
+  return (m->region + index);
 }
 
 inline size_t MDINDEX(mdalloc_t m, void * address)
 {
-  return ((address - m->region) / mdpagesize + 1);
+  return (address - m->region);
 }
 
 inline int MDVALID(mdalloc_t m,void * address)
@@ -136,5 +134,5 @@ inline int MDVALID(mdalloc_t m,void * address)
 
 inline int MDVALIDI(mdalloc_t m,size_t index)
 {
-  return ((index > 0) && (index <= m->size / mdpagesize));
+  return ((index > 0) && (index <= m->size));
 }

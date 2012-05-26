@@ -27,36 +27,57 @@ struct Branch
 };
 typedef struct Branch branch_t;
 
-/*both pointers and indexs are allways > 0*/
-#define EMPTYBRANCH(b) (b.cld == 0)
-
 #include "mdalloc.h"
 
 #define PAGE_SIZE 4096
 #define MAXCARD (int)((PAGE_SIZE-(2*sizeof(int)))/ sizeof(struct Branch))
 #define MINCARD (MAXCARD / 2)
 
+/*
+ * hack to emulate flexible array member of C99
+ *
+ * Example
+ * 
+ * struct header {
+ *    ...
+ *    int data[FLEXIBLE_SIZE];
+ * };
+ *
+ * ...
+ *
+ * size_t n = 123;
+ * struct header *my_header = malloc(SIZEOF_FLEXIBLE(struct header, data, n));
+ *
+ */
+#include <stddef.h>
+#define FLEXIBLE_SIZE 1
+#define SIZEOF_FLEXIBLE(type, member, length) \
+  ( offsetof(type, member) + (length) * sizeof ((type *)0)->member[0] )
+
 struct Node
 {
   int count;
   int level;
-  branch_t branch[MAXCARD];
+  branch_t branch[FLEXIBLE_SIZE];
 };
 typedef struct Node * node_t;
 
-struct Rtree
+struct RTreeInfo
 {
   /* info on the tree structure */
   size_t maxcard;
   size_t mincard;
   
   /* root node index */
-  index_t index;
-
-  /* allocation structure */
-  mdalloc_t m;
+  size_t nidx;
 };
-typedef struct Rtree * rtree_t;
+typedef struct RTreeInfo * rtreeinfo_t;
+
+/* rtree info is allways stored in the first page
+ * of m
+ * (rtreeinfo_t) t->region
+ */
+typedef mdalloc_t rtree_t;
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
@@ -80,5 +101,7 @@ struct Partition
   rect_t cover[2];
 };
 typedef struct Partition partition_t;
+
+#define ALIGN(addr, size) (((addr)+(size-1))&(~(size-1)))
 
 #endif /* _RTREE_ */
