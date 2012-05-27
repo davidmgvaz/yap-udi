@@ -22,7 +22,7 @@ typedef size_t index_t;
 struct Branch
 {
   rect_t mbr;
-  index_t cld; /*void * so user can store whatever he needs, in case
+  index_t child; /*void * so user can store whatever he needs, in case
    of non-leaf nodes it stores the index of child*/
 };
 typedef struct Branch branch_t;
@@ -61,6 +61,8 @@ struct Node
   branch_t branch[FLEXIBLE_SIZE];
 };
 typedef struct Node * node_t;
+#define SIZEOF_NODE(length) SIZEOF_FLEXIBLE(struct Node, branch, length)
+
 
 struct RTreeInfo
 {
@@ -73,11 +75,16 @@ struct RTreeInfo
 };
 typedef struct RTreeInfo * rtreeinfo_t;
 
+typedef mdalloc_t rtree_t;
 /* rtree info is allways stored in the first page
  * of m
  * (rtreeinfo_t) t->region
  */
-typedef mdalloc_t rtree_t;
+#define RTREEINFO(t) ((rtreeinfo_t) t->region)
+
+#define MAXCARD_(t) (RTREEINFO(t)->maxcard)
+#define MINCARD_(t) (RTREEINFO(t)->mincard)
+#define ROOTINDEX(t) (RTREEINFO(t)->nidx)
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))

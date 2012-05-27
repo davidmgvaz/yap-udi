@@ -67,17 +67,13 @@ static inline branch_t * NODEBRANCH(rtree_t t, index_t ndx, size_t bdx)
 
 static inline int EMPTYNODEBRANCH(rtree_t t, index_t ndx, size_t bdx)
 {
-  return (NODEBRANCH(t, ndx, bdx)->cld == 0);
+  return (NODEBRANCH(t, ndx, bdx)->child == 0);
 }
 
-#define RTREEINFO(t) ((rtreeinfo_t) t->region)
-#define MAXCARD_(t) (RTREEINFO(t)->maxcard)
-#define MINCARD_(t) (RTREEINFO(t)->mincard)
-#define ROOTINDEX(t) (RTREEINFO(t)->nidx)
 #define ROOTNODE(t) (NODE(t, ROOTINDEX(t)))
 /*both pointers and offets are allways > 0
- becouse offset 0 stores rtree info */
-#define EMPTYBRANCH(b) (b.cld == 0)
+ because offset 0 stores rtree info */
+#define EMPTYBRANCH(b) (b.child == 0)
 
 rtree_t RTreeNew (void)
 {
@@ -91,8 +87,10 @@ rtree_t RTreeNew (void)
   MINCARD_(t) = MAXCARD_(t) / 2;
 
   n = RTreeNewNode(t);
+  /*t->region might change after RTreeNewNode so
+    ROOTINDEX(t) = RTreeNewNode(t); would segfault */
   ROOTINDEX(t) = n;
-    
+
   ROOTNODE(t)->level = 0; /*leaf*/
 
   { int bdx;
@@ -130,7 +128,6 @@ static size_t RTreeNewNode (rtree_t t)
   index_t ndx;
 
   ndx = MDAlloc(t);
-
   RTreeNodeInit(t,ndx);
 
   return ndx;
@@ -139,8 +136,10 @@ static size_t RTreeNewNode (rtree_t t)
 static void RTreeNodeInit (rtree_t t, index_t index)
 {
   node_t n;
+
   n = NODE(t,index);
-  memset((void *) n,0, SIZEOF_FLEXIBLE(struct Node, branch, MAXCARD_(t)));
+  memset((void *) n,0, SIZEOF_NODE(MAXCARD_(t)));
+
   n->level = -1;
 }
 
@@ -161,7 +160,7 @@ static void RTreeDestroyNode (rtree_t t, index_t index)
   if (node->level == 0) /* leaf level*/
     {
       for (i = 0; i < MAXCARD_(t); i++)
-        if (node->branch[i].cld)
+        if (node->branch[i].child)
           ;/* allow user free data*/
         else
           break;
@@ -170,7 +169,7 @@ static void RTreeDestroyNode (rtree_t t, index_t index)
     {
       for (i = 0; i < MAXCARD_(t); i++)
         if (!EMPTYBRANCH(node->branch[i]))
-          RTreeDestroyNode (t, node->branch[i].cld);
+          RTreeDestroyNode (t, node->branch[i].child);
         else
           break;
     }
@@ -198,7 +197,7 @@ static int RTreeSearchNode (rtree_t t, index_t index,
         assert(&(n->branch[i]) == NODEBRANCH(t,index,i));
         if (!EMPTYBRANCH(n->branch[i]) &&
             RectOverlap (s,n->branch[i].mbr))
-          c += RTreeSearchNode (t, n->branch[i].cld, s, f, arg);
+          c += RTreeSearchNode (t, n->branch[i].child, s, f, arg);
       }
     }
   else
@@ -210,7 +209,7 @@ static int RTreeSearchNode (rtree_t t, index_t index,
           {
             c ++;
             if (f)
-              if ( !f(n->branch[i].mbr,DATA(n->branch[i].cld),arg))
+              if ( !f(n->branch[i].mbr,DATA(n->branch[i].child),arg))
                 return c;
           }
       }
@@ -232,15 +231,14 @@ void RTreeInsert (rtree_t t, rect_t r, void *data)
       NODE(t,new_root)->level = ROOTNODE(t)->level + 1;
 
       b.mbr = RTreeNodeCover(t, ROOTINDEX(t));
-      b.cld = ROOTINDEX(t);
+      b.child = ROOTINDEX(t);
       RTreeAddBranch(t, new_root, b, NULL);
 
       b.mbr = RTreeNodeCover(t, n2);
-      b.cld = n2;
+      b.child = n2;
       RTreeAddBranch(t, new_root, b, NULL);
 
       ROOTINDEX(t) = new_root;
-      fprintf(stderr, "Root level=%d\n", ROOTNODE(t)->level);
     }
 }
 
@@ -254,13 +252,13 @@ static int RTreeInsertNode (rtree_t t, index_t index,
   branch_t b;
   int split;
 
-  /* assert(n && new_node); */
-  /* assert(level >= 0 && level <= n->level); */
+  assert(NODE(t,index) && new_index);
+  assert(level >= 0 && level <= NODE(t,index)->level);
   
   if (NODE(t,index)->level > level)
     {
       i = RTreePickBranch(t, r, index);
-      split = RTreeInsertNode(t, NODE(t,index)->branch[i].cld, level,
+      split = RTreeInsertNode(t, NODE(t,index)->branch[i].child, level,
                               r, data, &n2);
       if (!split)
         {
@@ -269,8 +267,8 @@ static int RTreeInsertNode (rtree_t t, index_t index,
         }
       else /* node split */
         {
-          NODE(t,index)->branch[i].mbr = RTreeNodeCover(t, NODE(t,index)->branch[i].cld);
-          b.cld = n2;
+          NODE(t,index)->branch[i].mbr = RTreeNodeCover(t, NODE(t,index)->branch[i].child);
+          b.child = n2;
           b.mbr = RTreeNodeCover(t, n2);
           return RTreeAddBranch(t, index, b, new_index);
         }
@@ -278,7 +276,7 @@ static int RTreeInsertNode (rtree_t t, index_t index,
   else /*insert level*/
     {
       b.mbr = r;
-      b.cld = (size_t) data;
+      b.child = (size_t) data;
       return RTreeAddBranch(t, index, b, new_index);
     }
 }
@@ -288,7 +286,8 @@ static int RTreeAddBranch(rtree_t t, index_t index, branch_t b,
 {
   int i;
 
-  if (NODE(t,index)->count < MAXCARD_(t)) /*split not necessary*/
+  if (NODE(t,index)->count < MAXCARD_(t))
+    /*split not necessary*/
     {
       for (i = 0; i < MAXCARD_(t); i++)
         if (EMPTYBRANCH(NODE(t,index)->branch[i]))
@@ -493,7 +492,7 @@ void RTreePrint(rtree_t t, index_t index)
     {
       if (!EMPTYBRANCH(n->branch[i]))
         {
-          printf("(%zu,",n->branch[i].cld);
+          printf("(%zu,",n->branch[i].child);
                    RectPrint(n->branch[i].mbr);
           printf(")");
         }
@@ -509,7 +508,7 @@ void RTreePrint(rtree_t t, index_t index)
   if (n->level != 0)
     for (i = 0; i < MAXCARD_(t); i++)
       if (!EMPTYBRANCH(n->branch[i]))
-        RTreePrint(t, n->branch[i].cld);
+        RTreePrint(t, n->branch[i].child);
       else
         break;
 }
