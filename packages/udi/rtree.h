@@ -29,10 +29,6 @@ typedef struct Branch branch_t;
 
 #include "mdalloc.h"
 
-#define PAGE_SIZE 4096
-#define MAXCARD (int)((PAGE_SIZE-(2*sizeof(int)))/ sizeof(struct Branch))
-#define MINCARD (MAXCARD / 2)
-
 /*
  * hack to emulate flexible array member of C99
  *
@@ -61,7 +57,7 @@ struct Node
   branch_t branch[FLEXIBLE_SIZE];
 };
 typedef struct Node * node_t;
-#define SIZEOF_NODE(length) SIZEOF_FLEXIBLE(struct Node, branch, length)
+#define SIZEOF_NODE(maxcard) SIZEOF_FLEXIBLE(struct Node, branch, maxcard)
 
 
 struct RTreeInfo
@@ -82,9 +78,13 @@ typedef mdalloc_t rtree_t;
  */
 #define RTREEINFO(t) ((rtreeinfo_t) t->region)
 
-#define MAXCARD_(t) (RTREEINFO(t)->maxcard)
-#define MINCARD_(t) (RTREEINFO(t)->mincard)
+#define MAXCARD(t) (RTREEINFO(t)->maxcard)
+#define MINCARD(t) (RTREEINFO(t)->mincard)
+
+#define NODE(t,index) ((node_t) MDGET(t,index))
+
 #define ROOTINDEX(t) (RTREEINFO(t)->nidx)
+#define ROOTNODE(t) (NODE(t, ROOTINDEX(t)))
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
@@ -100,14 +100,17 @@ extern void RTreePrint(rtree_t, index_t);
 
 extern rect_t RectInit (void);
 
+
 struct Partition
 {
-  branch_t buffer[MAXCARD+1];
   int n;
   rect_t cover_all;
   rect_t cover[2];
+  size_t maxcard;
+  branch_t buffer[FLEXIBLE_SIZE];
 };
-typedef struct Partition partition_t;
+typedef struct Partition * partition_t;
+#define SIZEOF_PARTITION(maxcard) SIZEOF_FLEXIBLE(struct Partition, buffer, maxcard + 1)
 
 #define ALIGN(addr, size) (((addr)+(size-1))&(~(size-1)))
 

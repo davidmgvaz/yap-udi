@@ -22,6 +22,8 @@ extern long mdpagesize;
  * Disk based allocation: MDInit(fd, flags)
  *   flags: PROT_* from mmap
  *   (must  not  conflict with the open mode of the file)
+ *
+ * note that the first page is allocated here
  */
 extern mdalloc_t MDInit (int fd, int flags);
 

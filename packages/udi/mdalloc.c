@@ -47,9 +47,8 @@ mdalloc_t MDInit (int fd, int flags)
     } 
   else /*memory based*/
     {
-      m->size = 0;
-      /*size 1 is a hack just to initialize a mmap region*/
-      m->region = (void *) mmap(NULL, 1, PROT_READ | PROT_WRITE, 
+      m->size = mdpagesize;
+      m->region = (void *) mmap(NULL, m->size, PROT_READ | PROT_WRITE, 
                                 MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
       if (m->region == MAP_FAILED)
         {
@@ -82,7 +81,7 @@ size_t MDAlloc (mdalloc_t m)
 {
   int r;
   size_t oldsize;
-  size_t index;
+  void * address;
 
   assert(m && m->region);
   
@@ -107,10 +106,13 @@ size_t MDAlloc (mdalloc_t m)
     }
 
   /*expand*/
-  m->region = mremap(m->region, oldsize, m->size, MREMAP_MAYMOVE);
+  address = m->region;
+    m->region = (void *) mremap(m->region, oldsize, m->size, MREMAP_MAYMOVE);
   if (m->region == MAP_FAILED)
     {
       perror("MDAlloc mremap");
+      fprintf(stderr, "%p, %zu, %zu, %d\n", 
+              address, oldsize, m->size, MREMAP_MAYMOVE);
       return 0;
     }
 
