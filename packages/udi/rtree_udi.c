@@ -132,7 +132,17 @@ void *RtreeUdiSearch (control_t *control)
         /*get the constraits rect*/
         Constraints = YAP_AttsOfVar(t);
         /*        Yap_DebugPlWrite(Constraints); */
-        r = RectOfTerm(YAP_ArgOfTerm(2,Constraints));
+        if (YAP_IsApplTerm(Constraints))
+          {
+            r = RectOfTerm(YAP_ArgOfTerm(2,Constraints));
+          }
+        else  /*hack to destroy udi*/
+          {
+            RTreeDestroy((*control)[i].tree);
+            fprintf(stderr,"Destroy RTree\n");
+            (*control)[i].tree = NULL;
+            return NULL;
+          }
 
         c = &cm;
         c->cl = Yap_ClauseListInit(&clauselist);

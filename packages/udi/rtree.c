@@ -90,9 +90,10 @@ static void RTreeNodeInit (rtree_t t, index_t index)
 
 void RTreeDestroy (rtree_t t)
 {
-  if (t)
-    RTreeDestroyNode (t,ROOTINDEX(t));
-  /*TODO: mmap clean*/
+  /* if (t) */
+  /*   RTreeDestroyNode (t,ROOTINDEX(t)); */
+  /*mmap clean*/
+  MDDestroy(t);
 }
 
 static void RTreeDestroyNode (rtree_t t, index_t index)

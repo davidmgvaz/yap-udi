@@ -112,6 +112,6 @@ struct Partition
 typedef struct Partition * partition_t;
 #define SIZEOF_PARTITION(maxcard) SIZEOF_FLEXIBLE(struct Partition, buffer, maxcard + 1)
 
-#define ALIGN(addr, size) (((addr)+(size-1))&(~(size-1)))
+/* #define ALIGN(addr, size) (((addr)+(size-1))&(~(size-1))) */
 
 #endif /* _RTREE_ */
