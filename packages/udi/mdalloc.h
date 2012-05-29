@@ -18,12 +18,21 @@ typedef struct MDAlloc * mdalloc_t;
 extern long mdpagesize;
 
 /*
+ * MDAlloc initializes the allocation structure and if in write mode
+ * allocates the first page (index 0).
+ *
  * Memory based allocation: MDInit(0,0); fd and flags will be ignored
  * Disk based allocation: MDInit(fd, flags)
  *   flags: PROT_* from mmap
  *   (must  not  conflict with the open mode of the file)
  *
- * note that the first page is allocated here
+ * Disk based allocation with PROT_WRITE flag, it is assumed the file 
+ * should be open with O_TRUNC, becouse no care is taken to shrink
+ * unused space in an existing file.
+ *
+ * Memory based allocation allways assumes write mode.
+ *
+ * In Read mode MAP_SHARED is used to allow sharing of resources.
  */
 extern mdalloc_t MDInit (int fd, int flags);
 
