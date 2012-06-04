@@ -42,4 +42,3 @@ typedef struct udi_control_block {
   Yap_UdiSearch search;
   Yap_UdiDestroy destroy;
 } *UdiControlBlock;
-

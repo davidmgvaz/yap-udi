@@ -1,14 +1,14 @@
 #ifndef _RTREE_UDI_I_
 #define _RTREE_UDI_I_
 
-#define NARGS 5
-struct Control
-{
-  int arg;
-  void *pred;
-  rtree_t tree;
-};
-typedef struct Control control_t[NARGS];
+/* #define NARGS 5 */
+/* struct Control */
+/* { */
+/*   int arg; */
+/*   void *pred; */
+/*   rtree_t tree; */
+/* }; */
+/* typedef struct Control control_t[NARGS]; */
 
 struct CallbackM
 {

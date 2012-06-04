@@ -29,6 +29,7 @@
   AtomB = AtomAdjust(AtomB);
   AtomBatched = AtomAdjust(AtomBatched);
   AtomBetween = AtomAdjust(AtomBetween);
+  AtomBTree = AtomAdjust(AtomBTree);
   AtomHugeInt = AtomAdjust(AtomHugeInt);
   AtomBinaryStream = AtomAdjust(AtomBinaryStream);
   AtomBraces = AtomAdjust(AtomBraces);

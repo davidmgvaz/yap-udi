@@ -78,7 +78,6 @@ static size_t RTreeNewNode (rtree_t t)
 }
 
 static void RTreeNodeInit (rtree_t t, index_t index)
-/*NODE safe*/
 {
   node_t n;
 
@@ -96,24 +95,24 @@ void RTreeDestroy (rtree_t t)
   MDDestroy(t);
 }
 
-static void RTreeDestroyNode (rtree_t t, index_t index)
-{
-  int i;
-  node_t n;
+/* static void RTreeDestroyNode (rtree_t t, index_t index) */
+/* { */
+/*   int i; */
+/*   node_t n; */
 
-  n = NODE(t,index);
-  if (n->level == 0) /* leaf level*/
-    {
-      for (i = 0; i < n->count; i++)
-        if (n->branch[i].child)
-          ;/* allow user free data*/
-    }
-  else
-    {
-      for (i = 0; i < n->count; i++)
-          RTreeDestroyNode (t, n->branch[i].child);
-    }
-}
+/*   n = NODE(t,index); */
+/*   if (n->level == 0) /\* leaf level*\/ */
+/*     { */
+/*       for (i = 0; i < n->count; i++) */
+/*         if (n->branch[i].child) */
+/*           ;/\* allow user free data*\/ */
+/*     } */
+/*   else */
+/*     { */
+/*       for (i = 0; i < n->count; i++) */
+/*           RTreeDestroyNode (t, n->branch[i].child); */
+/*     } */
+/* } */
 
 int RTreeSearch (rtree_t t, rect_t s, SearchHitCallback f, void *arg)
 {

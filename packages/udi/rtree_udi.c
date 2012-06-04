@@ -7,10 +7,16 @@
 
 #include "Yap.h"
 
+#include "udi.h"
+#include "udi_.h"
+
 #include "rtree.h"
 #include "clause_list.h"
 #include "rtree_udi_i.h"
 #include "rtree_udi.h"
+
+/*Hack to remove*/
+#define NARGS 1
 
 static int YAP_IsNumberTermToFloat (Term term, YAP_Float *n)
 {
@@ -49,10 +55,10 @@ static rect_t RectOfTerm (Term term)
   return (rect);
 }
 
-control_t *RtreeUdiInit (Term spec,
+control_t RtreeUdiInit (Term spec,
                          void * pred,
                          int arity){
-  control_t *control;
+  control_t control;
   YAP_Term arg;
   int i, c;
   /*  YAP_Term mod;  */
@@ -61,7 +67,7 @@ control_t *RtreeUdiInit (Term spec,
   if (! YAP_IsApplTerm(spec))
     return (NULL);
 
-  control = (control_t *) malloc (sizeof(*control));
+  control = (control_t) malloc (sizeof(*control));
   assert(control);
   memset((void *) control,0, sizeof(*control));
 
@@ -73,9 +79,8 @@ control_t *RtreeUdiInit (Term spec,
           && strcmp("+",YAP_AtomName(YAP_AtomOfTerm(arg))) == 0)
         {
           
-          (*control)[c].pred = pred;
-          (*control)[c++].arg = i;
-
+          control[c].pred = pred;
+          control[c++].arg = i;
         }
     }
 
@@ -86,19 +91,19 @@ control_t *RtreeUdiInit (Term spec,
   return control;
 }
 
-control_t *RtreeUdiInsert (Term term,control_t *control,void *clausule)
+control_t RtreeUdiInsert (Term term,control_t control,void *clausule)
 {
   int i;
   rect_t r;
 
   assert(control);
 
-  for (i = 0; i < NARGS && (*control)[i].arg != 0 ; i++)
+  for (i = 0; i < NARGS && control[i].arg != 0 ; i++)
     {
-      r = RectOfTerm(YAP_ArgOfTerm((*control)[i].arg,term));
-      if (!(*control)[i].tree)
-        (*control)[i].tree = RTreeNew();
-      RTreeInsert((*control)[i].tree,r,clausule);
+      r = RectOfTerm(YAP_ArgOfTerm(control[i].arg,term));
+      if (!control[i].tree)
+        control[i].tree = RTreeNew();
+      RTreeInsert(control[i].tree,r,clausule);
     }
 
   /*  printf("insert %p\n", clausule); */
@@ -114,42 +119,42 @@ static int callback(rect_t r, void *data, void *arg)
 }
 
 /*ARGS ARE AVAILABLE*/
-void *RtreeUdiSearch (control_t *control)
+void *RtreeUdiSearch (control_t control)
 {
   rect_t r;
   int i;
   struct ClauseList clauselist;
   struct CallbackM cm;
   callback_m_t c;
-  YAP_Term Constraints;
+  YAP_Term t, Constraints;
 
   /*RTreePrint ((*control)[0].tree);*/
 
-  for (i = 0; i < NARGS && (*control)[i].arg != 0 ; i++) {
-    YAP_Term t = YAP_A((*control)[i].arg);
+  for (i = 0; i < NARGS && control[i].arg != 0 ; i++) {
+    t = YAP_A(control[i].arg);
     if (YAP_IsAttVar(t))
       {
         /*get the constraits rect*/
         Constraints = YAP_AttsOfVar(t);
-        /*        Yap_DebugPlWrite(Constraints); */
+        /* Yap_DebugPlWrite(Constraints); */
         if (YAP_IsApplTerm(Constraints))
           {
             r = RectOfTerm(YAP_ArgOfTerm(2,Constraints));
           }
         else  /*hack to destroy udi*/
           {
-            RTreeDestroy((*control)[i].tree);
+            RTreeDestroy(control[i].tree);
             fprintf(stderr,"Destroy RTree\n");
-            (*control)[i].tree = NULL;
+            control[i].tree = NULL;
             return NULL;
           }
 
         c = &cm;
         c->cl = Yap_ClauseListInit(&clauselist);
-        c->pred = (*control)[i].pred;
+        c->pred = control[i].pred;
         if (!c->cl)
           return NULL; /*? or fail*/
-        RTreeSearch((*control)[i].tree, r, callback, c);
+        RTreeSearch(control[i].tree, r, callback, c);
         Yap_ClauseListClose(c->cl);
 
         if (Yap_ClauseListCount(c->cl) == 0)
@@ -169,16 +174,16 @@ void *RtreeUdiSearch (control_t *control)
   return NULL; /*YAP FALLBACK*/
 }
 
-int RtreeUdiDestroy(control_t *control)
+int RtreeUdiDestroy(control_t control)
 {
   int i;
 
   assert(control);
 
-  for (i = 0; i < NARGS && (*control)[i].arg != 0; i++)
+  for (i = 0; i < NARGS && control[i].arg != 0; i++)
     {
-      if ((*control)[i].tree)
-        RTreeDestroy((*control)[i].tree);
+      if (control[i].tree)
+        RTreeDestroy(control[i].tree);
     }
 
   free(control);

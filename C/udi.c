@@ -1,10 +1,10 @@
-
 #include "Yap.h"
 #include "clause.h"
 #include "udi.h"
 
 
-#include "rtree_udi.h"
+/* #include "rtree_udi.h" */
+/* #include "b+tree_udi.h" */
 
 /* we can have this stactic because it is written once */
 static struct udi_control_block RtreeCmd;
@@ -148,15 +148,28 @@ Yap_udi_search(PredEntry *p)
   return info->functions->search(info->cb);
 }
 
+void *UdiInit (Term spec, void * pred, int arity);
+void *UdiInsert (Term term,void *control,void *clausule);
+void *UdiSearch (void *control);
+int UdiDestroy(void *control);
+
 void
 Yap_udi_init(void)
 {
   UdiControlBlocks = NULL;
   /* to be filled in by David */
-  RtreeCmd.init = RtreeUdiInit;
-  RtreeCmd.insert = RtreeUdiInsert;
-  RtreeCmd.search = RtreeUdiSearch;
-  RtreeCmd.destroy = RtreeUdiDestroy;
+  /* RtreeCmd.init = RtreeUdiInit; */
+  /* RtreeCmd.insert = RtreeUdiInsert; */
+  /* RtreeCmd.search = RtreeUdiSearch; */
+  /* RtreeCmd.destroy = RtreeUdiDestroy; */
+  /* RtreeCmd.init = BtreeUdiInit; */
+  /* RtreeCmd.insert = BtreeUdiInsert; */
+  /* RtreeCmd.search = BtreeUdiSearch; */
+  /* RtreeCmd.destroy = BtreeUdiDestroy; */
+  RtreeCmd.init = UdiInit;
+  RtreeCmd.insert = UdiInsert;
+  RtreeCmd.search = UdiSearch;
+  RtreeCmd.destroy = UdiDestroy;
   Yap_InitCPred("$udi_init", 2, p_new_udi, 0);
 }
 

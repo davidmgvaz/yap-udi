@@ -1,14 +1,14 @@
 #ifndef _BTREE_UDI_I_
 #define _BTREE_UDI_I_
 
-#define NARGS 5
-struct Control
-{
-  int arg;
-  void *pred;
-  btree_t tree;
-};
-typedef struct Control control_t[NARGS];
+/* #define NARGS 5 */
+/* struct Control */
+/* { */
+/*   int arg; */
+/*   void *pred; */
+/*   btree_t tree; */
+/* }; */
+/* typedef struct Control control_t[NARGS]; */
 
 typedef void (*BTreeSearchAtt) (struct Control, Term, clause_list_t);
 

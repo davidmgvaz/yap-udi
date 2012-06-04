@@ -8,15 +8,20 @@
 
 #include "Yap.h"
 
+#include "udi.h"
+#include "udi_.h"
+
 #include "b+tree.h"
 #include "clause_list.h"
 #include "b+tree_udi_i.h"
 #include "b+tree_udi.h"
 
-control_t *BtreeUdiInit (YAP_Term spec,
+#define NARGS 1
+
+control_t BtreeUdiInit (YAP_Term spec,
                          void * pred,
                          int arity){
-  control_t *control;
+  control_t control;
   YAP_Term arg;
   int i, c;
   /*  YAP_Term mod;  */
@@ -25,7 +30,7 @@ control_t *BtreeUdiInit (YAP_Term spec,
   if (! YAP_IsApplTerm(spec))
     return (NULL);
   
-  control = (control_t *) malloc (sizeof(*control));
+  control = (control_t) malloc (sizeof(*control));
   assert(control);
   memset((void *) control,0, sizeof(*control));
   
@@ -37,8 +42,8 @@ control_t *BtreeUdiInit (YAP_Term spec,
           && strcmp("+",YAP_AtomName(YAP_AtomOfTerm(arg))) == 0)
         {
           
-          (*control)[c].pred = pred;
-          (*control)[c++].arg = i; 
+          control[c].pred = pred;
+          control[c++].arg = i; 
         }
     }
   
@@ -49,18 +54,18 @@ control_t *BtreeUdiInit (YAP_Term spec,
   return control;
 }
 
-control_t *BtreeUdiInsert (YAP_Term term,control_t *control,void *clausule)
+control_t BtreeUdiInsert (YAP_Term term,control_t control,void *clausule)
 {
   int i;
 
   assert(control);
 
-  for (i = 0; i < NARGS && (*control)[i].arg != 0 ; i++)
+  for (i = 0; i < NARGS && control[i].arg != 0 ; i++)
     {
-      if (!(*control)[i].tree)
-        (*control)[i].tree = BTreeNew();
-      BTreeInsert((*control)[i].tree,
-                  YAP_FloatOfTerm(YAP_ArgOfTerm((*control)[i].arg,term)),
+      if (!control[i].tree)
+        control[i].tree = BTreeNew();
+      BTreeInsert(control[i].tree,
+                  YAP_FloatOfTerm(YAP_ArgOfTerm(control[i].arg,term)),
                   clausule);
     }
 
@@ -70,22 +75,23 @@ control_t *BtreeUdiInsert (YAP_Term term,control_t *control,void *clausule)
 }
 
 /*ARGS ARE AVAILABLE*/
-void *BtreeUdiSearch (control_t *control)
+void *BtreeUdiSearch (control_t control)
 {
   int i, j;
   size_t n;
   struct ClauseList clauselist;
   clause_list_t cl;
-  YAP_Term Constraints;
+  YAP_Term t, Constraints;
   const char * att;
 
 
-  for (i = 0; i < NARGS && (*control)[i].arg != 0 ; i++)
-    if (YAP_IsAttVar(YAP_A((*control)[i].arg)))
+  for (i = 0; i < NARGS && control[i].arg != 0 ; i++) {
+    t = YAP_A(control[i].arg);
+    if (YAP_IsAttVar(t))
       {
 
         /*get the constraits rect*/
-        Constraints = YAP_AttsOfVar(YAP_A((*control)[i].arg));
+        Constraints = YAP_AttsOfVar(t);
         /* Yap_DebugPlWrite(Constraints); */
         att = YAP_AtomName(YAP_NameOfFunctor(YAP_FunctorOfTerm(Constraints)));
  
@@ -96,7 +102,7 @@ void *BtreeUdiSearch (control_t *control)
         n = sizeof (att_func) / sizeof (struct Att);
         for (j = 0; j < n; j ++)
           if (strcmp(att_func[j].att,att) == 0)
-            att_func[j].proc_att((*control)[i],Constraints,cl);
+            att_func[j].proc_att(control[i],Constraints,cl);
 
         Yap_ClauseListClose(cl);
 
@@ -105,14 +111,15 @@ void *BtreeUdiSearch (control_t *control)
             Yap_ClauseListDestroy(cl);
             return Yap_FAILCODE();
           }
-
+        
         if (Yap_ClauseListCount(cl) == 1)
           {
             return Yap_ClauseListToClause(cl);
           }
-
+        
         return Yap_ClauseListCode(cl);
       }
+  }
   
   return NULL; /*YAP FALLBACK*/
 }
@@ -257,16 +264,16 @@ void BTreeRangeAtt (struct Control c,Term constraint, clause_list_t cl)
     }
 }
 
-int BtreeUdiDestroy(control_t *control)
+int BtreeUdiDestroy(control_t control)
 {
   int i;
 
   assert(control);
 
-  for (i = 0; i < NARGS && (*control)[i].arg != 0; i++)
+  for (i = 0; i < NARGS && control[i].arg != 0; i++)
     {
-      if ((*control)[i].tree)
-        BTreeDestroy((*control)[i].tree);
+      if (control[i].tree)
+        BTreeDestroy(control[i].tree);
     }
 
   free(control);
