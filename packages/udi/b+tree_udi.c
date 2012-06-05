@@ -9,7 +9,6 @@
 #include "Yap.h"
 
 #include "udi.h"
-#include "udi_.h"
 
 #include "b+tree.h"
 #include "clause_list.h"

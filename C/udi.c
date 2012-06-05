@@ -1,11 +1,10 @@
+#include <assert.h>
 #include "Yap.h"
 #include "clause.h"
 #include "udi.h"
+#include "udi_indexers.h"
 
-
-/* #include "rtree_udi.h" */
-/* #include "b+tree_udi.h" */
-
+/*TODO: remove this*/
 /* we can have this stactic because it is written once */
 static struct udi_control_block RtreeCmd;
 
@@ -148,10 +147,112 @@ Yap_udi_search(PredEntry *p)
   return info->functions->search(info->cb);
 }
 
-void *UdiInit (Term spec, void * pred, int arity);
-void *UdiInsert (Term term,void *control,void *clausule);
-void *UdiSearch (void *control);
-int UdiDestroy(void *control);
+/* control_t linked list maintenance */
+static control_t add_control(int arg, void *pred, void *idxstr,
+                             control_t old)
+{
+  control_t control;
+
+  control = (control_t) Yap_AllocCodeSpace(sizeof(*control));
+  if (!control)
+    return NULL;
+
+  control->arg = arg;
+  control->pred = pred;
+  control->tree = NULL;
+  control->controlblock = idxstr;
+  control->next = old;
+
+  return control;
+}
+
+control_t UdiInit (Term spec, void * pred, int arity)
+{
+  int i, j, n;
+  int valid_spec;
+  Term arg;
+  Atom idxtype;
+  control_t control;
+  
+  n =  sizeof (udi_indexers) / sizeof (struct UDIIndexers);
+  if (!udi_indexers[0].atomdecl)
+    { /*LookupAtom optimization*/
+      for (i = 0; i < n; i++)
+        udi_indexers[i].atomdecl = Yap_LookupAtom(udi_indexers[i].decl);
+    }
+
+  control=NULL;
+  for (i = 1; i <= arity; i++)
+    {
+      arg = YAP_ArgOfTerm(i,spec);
+      if (YAP_IsAtomTerm(arg))
+        {
+          idxtype = YAP_AtomOfTerm(arg);
+
+          valid_spec = 0;
+          for(j = 0; j < n; j++)
+            {
+              if (idxtype == udi_indexers[j].atomdecl)
+                {
+                  control = add_control(i, pred, 
+                                        (void *) &(udi_indexers[j].control),
+                                        control);
+                  valid_spec = 1;
+                  break;
+                }
+            }
+          if (!valid_spec && idxtype != AtomMinus)
+            fprintf(stderr, "Invalid Spec (%s)\n", AtomName(idxtype));
+  
+        }
+    }
+  
+  return control;
+}
+
+control_t UdiInsert (Term term,control_t control,void *clausule)
+{
+  control_t iter;
+  assert(control);
+  /* fprintf(stderr,"%p\n", (void *) control); */
+
+  iter = control;
+  while (iter)
+    {
+      iter->controlblock->insert(term, iter, clausule);
+      iter = iter->next;
+    }
+
+  return control;
+}
+
+void *UdiSearch (control_t control)
+{
+  control_t iter;
+  void * r;
+
+  assert(control);
+
+  iter = control;
+  while (iter)
+    {
+      r = control->controlblock->search(control);
+      if (r)
+        return r;
+      iter = iter->next;
+    }
+  return NULL;
+}
+
+int UdiDestroy (control_t control)
+{
+
+  assert(control);
+
+  control->controlblock->destroy(control);
+
+  return TRUE;
+}
 
 void
 Yap_udi_init(void)

@@ -8,7 +8,6 @@
 #include "Yap.h"
 
 #include "udi.h"
-#include "udi_.h"
 
 #include "rtree.h"
 #include "clause_list.h"
