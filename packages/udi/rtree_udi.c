@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <gmp.h>
 
 #include <YapInterface.h>
 
@@ -90,7 +91,7 @@ control_t RtreeUdiInit (Term spec,
   return control;
 }
 
-control_t RtreeUdiInsert (Term term,control_t control,void *clausule)
+control_t RtreeUdiInsert (Term term,control_t control,index_t clausule)
 {
   int i;
   rect_t r;
@@ -110,11 +111,15 @@ control_t RtreeUdiInsert (Term term,control_t control,void *clausule)
   return (control);
 }
 
-static int callback(rect_t r, void *data, void *arg)
+static int callback(rect_t r, index_t data, void *arg)
 {
-  callback_m_t x;
-  x = (callback_m_t) arg;
-  return Yap_ClauseListExtend(x->cl,data,x->pred);
+  /* callback_m_t x; */
+  /* x = (callback_m_t) arg; */
+  /* return Yap_ClauseListExtend(x->cl,data,x->pred); */
+
+  mpz_setbit(*((mpz_t *) arg), data);
+
+  return TRUE;
 }
 
 /*ARGS ARE AVAILABLE*/
@@ -122,10 +127,11 @@ void *RtreeUdiSearch (control_t control)
 {
   rect_t r;
   int i;
-  struct ClauseList clauselist;
-  struct CallbackM cm;
-  callback_m_t c;
+  /* struct ClauseList clauselist; */
+  /* struct CallbackM cm; */
+  /* callback_m_t c; */
   YAP_Term t, Constraints;
+  mpz_t *result;
 
   /*RTreePrint ((*control)[0].tree);*/
 
@@ -148,26 +154,30 @@ void *RtreeUdiSearch (control_t control)
             return NULL;
           }
 
-        c = &cm;
-        c->cl = Yap_ClauseListInit(&clauselist);
-        c->pred = control[i].pred;
-        if (!c->cl)
-          return NULL; /*? or fail*/
-        RTreeSearch(control[i].tree, r, callback, c);
-        Yap_ClauseListClose(c->cl);
+        /* c = &cm; */
+        /* c->cl = Yap_ClauseListInit(&clauselist); */
+        /* c->pred = control[i].pred; */
+        /* if (!c->cl) */
+        /*   return NULL; /\*? or fail*\/ */
+        result = (mpz_t *) malloc(sizeof(*result));
+        assert(result);
+        mpz_init(*result);
+        RTreeSearch(control[i].tree, r, callback, result);
+        return result;
+  /*       Yap_ClauseListClose(c->cl); */
 
-        if (Yap_ClauseListCount(c->cl) == 0)
-          {
-            Yap_ClauseListDestroy(c->cl);
-            return Yap_FAILCODE();
-          }
+  /*       if (Yap_ClauseListCount(c->cl) == 0) */
+  /*         { */
+  /*           Yap_ClauseListDestroy(c->cl); */
+  /*           return Yap_FAILCODE(); */
+  /*         } */
 
-        if (Yap_ClauseListCount(c->cl) == 1)
-          {
-            return Yap_ClauseListToClause(c->cl);
-          }
+  /*       if (Yap_ClauseListCount(c->cl) == 1) */
+  /*         { */
+  /*           return Yap_ClauseListToClause(c->cl); */
+  /*         } */
 
-        return Yap_ClauseListCode(c->cl);
+  /*       return Yap_ClauseListCode(c->cl); */
       }
   }
   return NULL; /*YAP FALLBACK*/

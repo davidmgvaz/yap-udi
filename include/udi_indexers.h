@@ -5,10 +5,10 @@ extern void *RtreeUdiSearch (control_t control);
 extern int RtreeUdiDestroy(control_t control);
 
 /*B+Tree Indexer*/
-extern control_t BtreeUdiInit (Term spec, void *pred, int arity);
-extern control_t BtreeUdiInsert (Term term, control_t control, void *clausule);
-extern void *BtreeUdiSearch (control_t control);
-extern int BtreeUdiDestroy(control_t control);
+/* extern control_t BtreeUdiInit (Term spec, void *pred, int arity); */
+/* extern control_t BtreeUdiInsert (Term term, control_t control, void *clausule); */
+/* extern void *BtreeUdiSearch (control_t control); */
+/* extern int BtreeUdiDestroy(control_t control); */
 
 /* To store UDI indexers access functions */
 struct UDIIndexers
@@ -25,10 +25,10 @@ struct UDIIndexers udi_indexers[] = {
     "rtree",
     NULL,
     {&RtreeUdiInit, &RtreeUdiInsert, &RtreeUdiSearch, &RtreeUdiDestroy}
-  },
-  {
-    "btree",
-    NULL,
-    {&BtreeUdiInit, &BtreeUdiInsert, &BtreeUdiSearch, &BtreeUdiDestroy}
-  }
+  }/* , */
+  /* { */
+  /*   "btree", */
+  /*   NULL, */
+  /*   {&BtreeUdiInit, &BtreeUdiInsert, &BtreeUdiSearch, &BtreeUdiDestroy} */
+  /* } */
 };

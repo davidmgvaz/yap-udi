@@ -90,10 +90,10 @@ typedef mdalloc_t rtree_t;
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 /* CallBack to search function */
-typedef int (*SearchHitCallback)(rect_t r, void *data, void *arg);
+typedef int (*SearchHitCallback)(rect_t r, index_t data, void *arg);
 
 extern rtree_t RTreeNew (void);
-extern void RTreeInsert (rtree_t, rect_t, void *);
+extern void RTreeInsert (rtree_t, rect_t, index_t);
 extern int RTreeSearch (rtree_t, rect_t, SearchHitCallback, void *);
 extern void RTreeDestroy (rtree_t);
 extern void RTreePrint(rtree_t, index_t);

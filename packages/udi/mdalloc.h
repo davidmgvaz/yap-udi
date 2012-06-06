@@ -15,6 +15,9 @@ struct MDAlloc
 };
 typedef struct MDAlloc * mdalloc_t;
 
+/* this holds the system page_size, used as base unit of allocation
+   in this library
+ */
 extern long mdpagesize;
 
 /*

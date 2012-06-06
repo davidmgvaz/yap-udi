@@ -1,6 +1,8 @@
 #include <assert.h>
 #include "Yap.h"
 #include "clause.h"
+#include "clause_list.h"
+
 #include "udi.h"
 #include "udi_indexers.h"
 
@@ -173,6 +175,7 @@ control_t UdiInit (Term spec, void * pred, int arity)
   Term arg;
   Atom idxtype;
   control_t control;
+  mdalloc_t clausulelist;
   
   n =  sizeof (udi_indexers) / sizeof (struct UDIIndexers);
   if (!udi_indexers[0].atomdecl)
@@ -182,6 +185,7 @@ control_t UdiInit (Term spec, void * pred, int arity)
     }
 
   control=NULL;
+  clausulelist=NULL;
   for (i = 1; i <= arity; i++)
     {
       arg = YAP_ArgOfTerm(i,spec);
@@ -198,6 +202,10 @@ control_t UdiInit (Term spec, void * pred, int arity)
                                         (void *) &(udi_indexers[j].control),
                                         control);
                   valid_spec = 1;
+                  if (!clausulelist)
+                    clausulelist = MDInit(0,0);
+                  /* TODO: check return value */
+                  control->clausules = clausulelist;
                   break;
                 }
             }
@@ -213,16 +221,42 @@ control_t UdiInit (Term spec, void * pred, int arity)
 control_t UdiInsert (Term term,control_t control,void *clausule)
 {
   control_t iter;
+  int i;
+  int *index;
+  void **clausules;
+
   assert(control);
   /* fprintf(stderr,"%p\n", (void *) control); */
+
+  /*last clausule*/
+  index = (int *) (control->clausules->region);
+  if (*index >= ((control->clausules->size - sizeof(int)) / sizeof(void *)))
+    {
+      /* alloc a new page */
+      MDAlloc(control->clausules);
+      index = (int *) (control->clausules->region);
+    }
+  clausules = (void **) (control->clausules->region + sizeof(int));
+  clausules[*index] = clausule;
+
+  /* for (i = 0; i < *index; i++) */
+  /*   fprintf(stderr,"%d:%p\n",i,clausules[i]); */
+  /* if (*index > 2) */
+  /*   { */
+  /*     fprintf(stderr,"%d:%p\n",(*index) - 2,clausules[(*index) -2]); */
+  /*     fprintf(stderr,"%d:%p\n",(*index) - 1,clausules[(*index) -1]); */
+  /*     fprintf(stderr,"%p %d %d\n",clausule, (*index), */
+  /*             ((control->clausules->size - sizeof(int)) / sizeof(void *))); */
+  /*   } */
 
   iter = control;
   while (iter)
     {
-      iter->controlblock->insert(term, iter, clausule);
+      iter->controlblock->insert(term, iter, *index);
       iter = iter->next;
     }
 
+  (*index) ++;
   return control;
 }
 
@@ -238,7 +272,51 @@ void *UdiSearch (control_t control)
     {
       r = control->controlblock->search(control);
       if (r)
-        return r;
+        {
+          mpz_t *result;
+          mp_bitcnt_t last = 0;
+          struct ClauseList clauselist;
+          void **clausules;
+
+          result = (mpz_t *) r;
+          clausules = (void **) (control->clausules->region + sizeof(int));
+
+          Yap_ClauseListInit(&clauselist);
+          last = mpz_scan1(*result,last);
+          
+          while (last != ~((mp_bitcnt_t) 0))
+            {
+              Yap_ClauseListExtend(&clauselist,
+                                   clausules[last],
+                                   control->pred);
+
+              fprintf(stderr, "%ld %p %p\n", 
+                      last,
+                      clausules[last],
+                      control->pred );
+
+              last = mpz_scan1(*result,++last);
+            }
+          fprintf(stderr, "\n\n");
+          mpz_clear(*result);
+          //free(r);
+          
+          Yap_ClauseListClose(&clauselist);
+
+          if (Yap_ClauseListCount(&clauselist) == 0)
+          {
+            Yap_ClauseListDestroy(&clauselist);
+            return Yap_FAILCODE();
+          }
+
+          if (Yap_ClauseListCount(&clauselist) == 1)
+            {
+              return Yap_ClauseListToClause(&clauselist);
+            }
+
+          return Yap_ClauseListCode(&clauselist);
+          /* return r; */
+        }
       iter = iter->next;
     }
   return NULL;

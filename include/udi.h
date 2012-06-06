@@ -37,6 +37,7 @@ typedef struct udi_control_block {
   Yap_UdiDestroy destroy;
 } *UdiControlBlock;
 
+#include "mdalloc.h"
 /*this is implemented as linked list 
   one element for each indexed argument
 */
@@ -45,6 +46,7 @@ struct Control
   int arg; /*argument index*/
   void *pred; /*predicate*/
   void *tree; /*indexing struture*/
+  mdalloc_t clausules; /*to store clausule list*/
   UdiControlBlock controlblock; /*access to indexer functions*/
   struct Control *next;
 };

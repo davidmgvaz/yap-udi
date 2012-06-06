@@ -18,7 +18,7 @@ static int RTreeSearchNode (rtree_t, index_t,
                             rect_t, SearchHitCallback, void *);
 static int RTreeInsertNode (rtree_t, index_t, 
                             int, 
-                            rect_t,void *,
+                            rect_t, index_t,
                             index_t *);
 
 static int RTreePickBranch (rtree_t, rect_t, index_t);
@@ -143,14 +143,14 @@ static int RTreeSearchNode (rtree_t t, index_t index,
           {
             c ++;
             if (f)
-              if ( !f(n->branch[i].mbr,(void *) n->branch[i].child,arg))
+              if ( !f(n->branch[i].mbr,n->branch[i].child,arg))
                 return c;
           }
     }
   return c;
 }
 
-void RTreeInsert (rtree_t t, rect_t r, void *data)
+void RTreeInsert (rtree_t t, rect_t r, index_t data)
 {
   index_t n2;
   index_t new_root;
@@ -177,7 +177,7 @@ void RTreeInsert (rtree_t t, rect_t r, void *data)
 
 static int RTreeInsertNode (rtree_t t, index_t index, 
                             int level,
-                            rect_t r, void *data,
+                            rect_t r, index_t data,
                             index_t *new_index)
 {
   int i;
