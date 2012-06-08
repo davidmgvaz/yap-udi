@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <gmp.h>
 
 #include <YapInterface.h>
 
@@ -14,6 +13,9 @@
 #include "clause_list.h"
 #include "rtree_udi_i.h"
 #include "rtree_udi.h"
+
+/* integer set */
+#include "gmpis.h"
 
 /*Hack to remove*/
 #define NARGS 1
@@ -40,10 +42,10 @@ static rect_t RectOfTerm (Term term)
   YAP_Term tmp;
   rect_t rect;
   int i;
-  
+
   if (!YAP_IsPairTerm(term))
     return (RectInit());
-  
+
   for (i = 0; YAP_IsPairTerm(term) && i < 4; i++)
     {
       tmp = YAP_HeadOfTerm (term);
@@ -78,7 +80,7 @@ control_t RtreeUdiInit (Term spec,
       if (YAP_IsAtomTerm(arg)
           && strcmp("+",YAP_AtomName(YAP_AtomOfTerm(arg))) == 0)
         {
-          
+
           control[c].pred = pred;
           control[c++].arg = i;
         }
@@ -87,7 +89,7 @@ control_t RtreeUdiInit (Term spec,
 /*  for (i = 0; i < NARGS; i++)
     printf("%d,%p\t",(*control)[i].arg,(*control)[i].tree);
   printf("\n"); */
-  
+
   return control;
 }
 
@@ -111,19 +113,19 @@ control_t RtreeUdiInsert (Term term,control_t control,index_t clausule)
   return (control);
 }
 
-static int callback(rect_t r, index_t data, void *arg)
-{
-  /* callback_m_t x; */
-  /* x = (callback_m_t) arg; */
-  /* return Yap_ClauseListExtend(x->cl,data,x->pred); */
+/* static int callback(rect_t r, index_t data, void *arg) */
+/* { */
+/*   /\* callback_m_t x; *\/ */
+/*   /\* x = (callback_m_t) arg; *\/ */
+/*   /\* return Yap_ClauseListExtend(x->cl,data,x->pred); *\/ */
 
-  mpz_setbit(*((mpz_t *) arg), data);
+/*   mpz_setbit(*((mpz_t *) arg), data); */
 
-  return TRUE;
-}
+/*   return TRUE; */
+/* } */
 
 /*ARGS ARE AVAILABLE*/
-void *RtreeUdiSearch (control_t control)
+void *RtreeUdiSearch (control_t control, YAP_UdiCallback callback, void * arg)
 {
   rect_t r;
   int i;
@@ -159,11 +161,12 @@ void *RtreeUdiSearch (control_t control)
         /* c->pred = control[i].pred; */
         /* if (!c->cl) */
         /*   return NULL; /\*? or fail*\/ */
-        result = (mpz_t *) malloc(sizeof(*result));
-        assert(result);
-        mpz_init(*result);
-        RTreeSearch(control[i].tree, r, callback, result);
-        return result;
+        /* result = (mpz_t *) malloc(sizeof(*result)); */
+        /* assert(result); */
+        /* mpz_init(*result); */
+        fprintf(stderr, "%p %p\n", callback, arg);
+        RTreeSearch(control[i].tree, r, (SearchHitCallback) callback, arg);
+        return arg;
   /*       Yap_ClauseListClose(c->cl); */
 
   /*       if (Yap_ClauseListCount(c->cl) == 0) */

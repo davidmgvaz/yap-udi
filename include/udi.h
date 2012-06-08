@@ -14,6 +14,9 @@ typedef void *
 		  void *control, /* estrutura de control*/
 		  void *clausule); /* valor a guardar na arvore, para retornar na pesquisa */
 
+/*Callbeck for each value found in search*/
+typedef int (* YAP_UdiCallback) (void *key, size_t data, void *arg);
+
 /* chamada cada vez que um predicado indexado aparece no código
    Returns:
        NULL quando não há indexação usavel no predicado (fallback to
@@ -22,7 +25,7 @@ yap indexing)
        TRY_RETRY_TRUST quando há resultados positivos
 */
 typedef void *
-(* Yap_UdiSearch)(void * control);
+(* Yap_UdiSearch)(void * control, YAP_UdiCallback, void *);
 
 /* chamada para destruir a estrutura de indexação, libertanto os recursos
    utilizados
@@ -71,10 +74,9 @@ control_t UdiInsert (Term term, control_t control,void *clausule);
    the intersection on the results and returns 
    conforms to Yap_UdiSearch
 */
-void *UdiSearch (control_t control);
+void *UdiSearch (control_t control, YAP_UdiCallback callback, void *data);
 
 /* calls each initialized indexer destroy
    conforms to Yap_UdiDestroy
 */
 int UdiDestroy(control_t control);
-

@@ -24,15 +24,15 @@ control_t BtreeUdiInit (YAP_Term spec,
   YAP_Term arg;
   int i, c;
   /*  YAP_Term mod;  */
-  
+
   /*  spec = Yap_StripModule(spec, &mod); */
   if (! YAP_IsApplTerm(spec))
     return (NULL);
-  
+
   control = (control_t) malloc (sizeof(*control));
   assert(control);
   memset((void *) control,0, sizeof(*control));
-  
+
   c = 0;
   for (i = 1; i <= arity; i ++)
     {
@@ -40,20 +40,20 @@ control_t BtreeUdiInit (YAP_Term spec,
       if (YAP_IsAtomTerm(arg)
           && strcmp("+",YAP_AtomName(YAP_AtomOfTerm(arg))) == 0)
         {
-          
+
           control[c].pred = pred;
-          control[c++].arg = i; 
+          control[c++].arg = i;
         }
     }
-  
+
   /* for (i = 0; i < NARGS; i++) */
   /*   printf("%d,%p\t",(*control)[i].arg,(*control)[i].tree); */
   /* printf("\n"); */
-  
+
   return control;
 }
 
-control_t BtreeUdiInsert (YAP_Term term,control_t control,void *clausule)
+control_t BtreeUdiInsert (YAP_Term term,control_t control,index_t clausule)
 {
   int i;
 
@@ -93,7 +93,7 @@ void *BtreeUdiSearch (control_t control)
         Constraints = YAP_AttsOfVar(t);
         /* Yap_DebugPlWrite(Constraints); */
         att = YAP_AtomName(YAP_NameOfFunctor(YAP_FunctorOfTerm(Constraints)));
- 
+
         cl = Yap_ClauseListInit(&clauselist);
         if (!cl)
           return NULL; /*? or fail*/
@@ -110,23 +110,23 @@ void *BtreeUdiSearch (control_t control)
             Yap_ClauseListDestroy(cl);
             return Yap_FAILCODE();
           }
-        
+
         if (Yap_ClauseListCount(cl) == 1)
           {
             return Yap_ClauseListToClause(cl);
           }
-        
+
         return Yap_ClauseListCode(cl);
       }
   }
-  
+
   return NULL; /*YAP FALLBACK*/
 }
 
 /*Needs to test if tree is not null*/
 void BTreeMinAtt (struct Control c,Term constraint, clause_list_t cl)
 {
-  void * d;
+  index_t d;
 
   /* printf("MIN\n"); */
 
@@ -138,7 +138,7 @@ void BTreeMinAtt (struct Control c,Term constraint, clause_list_t cl)
 
 void BTreeMaxAtt (struct Control c,Term constraint, clause_list_t cl)
 {
-  void * d;
+  index_t d;
 
   /* printf("MAX\n"); */
 
@@ -150,7 +150,7 @@ void BTreeMaxAtt (struct Control c,Term constraint, clause_list_t cl)
 void BTreeEqAtt (struct Control c,Term constraint, clause_list_t cl)
 {
   double min;
-  void * d;
+  index_t d;
 
   min = YAP_FloatOfTerm(YAP_ArgOfTerm(2,constraint));
 
@@ -164,7 +164,7 @@ void BTreeLtAtt (struct Control c,Term constraint, clause_list_t cl)
   double max;
   index_t n;
   int i;
-  void * d;
+  index_t d;
 
   max = YAP_FloatOfTerm(YAP_ArgOfTerm(2,constraint));
 
@@ -186,7 +186,7 @@ void BTreeLeAtt (struct Control c,Term constraint, clause_list_t cl)
   double max;
   index_t n;
   int i;
-  void * d;
+  index_t d;
 
   max = YAP_FloatOfTerm(YAP_ArgOfTerm(2,constraint));
 
@@ -206,7 +206,7 @@ void BTreeGtAtt (struct Control c,Term constraint, clause_list_t cl)
   double min;
   index_t n;
   int i;
-  void * d;
+  index_t d;
 
   min = YAP_FloatOfTerm(YAP_ArgOfTerm(2,constraint));
 
@@ -214,7 +214,7 @@ void BTreeGtAtt (struct Control c,Term constraint, clause_list_t cl)
   if (d)
     {
       Yap_ClauseListExtend(cl,d,c.pred);
-      
+
       while ((d = BTreeSearchNext(DBL_MAX,LT,c.tree,&n,&i)))
         Yap_ClauseListExtend(cl,d,c.pred);
     }
@@ -225,7 +225,7 @@ void BTreeGeAtt (struct Control c,Term constraint, clause_list_t cl)
   double min;
   index_t n;
   int i;
-  void * d;
+  index_t d;
 
   min = YAP_FloatOfTerm(YAP_ArgOfTerm(2,constraint));
 
@@ -245,7 +245,7 @@ void BTreeRangeAtt (struct Control c,Term constraint, clause_list_t cl)
   int minc,maxc;
   index_t n;
   int i;
-  void * d;
+  index_t d;
 
   min = YAP_FloatOfTerm(YAP_ArgOfTerm(2,constraint));
   minc = strcmp(YAP_AtomName(YAP_AtomOfTerm(YAP_ArgOfTerm(3,constraint))),
@@ -277,6 +277,6 @@ int BtreeUdiDestroy(control_t control)
 
   free(control);
   control = NULL;
-  
+
   return TRUE;
 }

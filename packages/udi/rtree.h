@@ -14,7 +14,7 @@ typedef size_t index_t;
 #endif
 
 /*
- * Alocates and initializes a new RTree Structure
+ * Alocates and initializes a new rtree structure
  */
 extern rtree_t RTreeNew (void);
 
@@ -28,7 +28,7 @@ extern void RTreeInsert (rtree_t rtree, rect_t mbr, index_t object);
  *
  * It is called with the found mbr and object, and auxiliary data
 */
-typedef int (*SearchHitCallback)(rect_t mbr, index_t object, void *data);
+typedef int (*SearchHitCallback)(void *mbr, index_t object, void *data);
 
 /* Searchs the rtree for objects that overlap mbr
  *

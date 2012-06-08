@@ -119,5 +119,4 @@ static void RectPrint (rect_t);
  because offset 0 stores rtree info */
 #define EMPTYBRANCH(b) (b.child == 0)
 
-
 #endif /* __RTREE_PRIVATE_H__ */

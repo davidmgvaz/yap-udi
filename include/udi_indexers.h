@@ -1,7 +1,7 @@
 /*RTree Indexer*/
 extern control_t RtreeUdiInit (Term spec, void *pred, int arity);
 extern control_t RtreeUdiInsert (Term term, control_t control, void *clausule);
-extern void *RtreeUdiSearch (control_t control);
+extern void *RtreeUdiSearch (control_t control, YAP_UdiCallback callback, void *data);
 extern int RtreeUdiDestroy(control_t control);
 
 /*B+Tree Indexer*/

@@ -3,20 +3,7 @@
 #include <assert.h>
 #include <string.h>
 
-#include "b+tree.h"
-
-static index_t BTreeNewNode (btree_t);
-static void BTreeNodeInit (btree_t, index_t);
-static int BTreeInsertNode(btree_t, index_t, double *, void **);
-static int BTreePickBranch(btree_t, index_t, double);
-static int BTreeAddBranch(btree_t, index_t, int, double *, void **);
-static int BTreeAddLeaf(btree_t, index_t, double *, void **);
-/* static void BTreeDestroyNode (node_t n); */
-static void *BTreeMin_(btree_t, index_t, index_t *, int *);
-static void *BTreeMax_(btree_t, index_t, index_t *, int *);
-static void *BTreeSearch_(btree_t, index_t, double, int, index_t *, int *);
-
-mdalloc_t m;
+#include "b+tree_private.h"
 
 btree_t BTreeNew (void)
 {
@@ -53,7 +40,6 @@ static void BTreeNodeInit (btree_t t, index_t nidx)
   node_t n;
 
   n = NODE(t,nidx);
-
   memset((void *) n, 0, SIZEOF_NODE(MAXCARD_(t)));
 
   n->level = -1;
@@ -82,13 +68,13 @@ void BTreeDestroy (btree_t t)
 /*     } */
 /* } */
 
-void BTreeInsert (btree_t t, double k, void *ptr)
+void BTreeInsert (btree_t t, double k, index_t data)
 {
   index_t new_root;
 
   assert(t && ROOTNODE(t));
 
-  if (BTreeInsertNode(t, ROOTINDEX(t), &k, &ptr))
+  if (BTreeInsertNode(t, ROOTINDEX(t), &k, &data))
     /* deal with root split */
     {
       new_root = BTreeNewNode(t);
@@ -97,14 +83,14 @@ void BTreeInsert (btree_t t, double k, void *ptr)
       NODE(t,new_root)->count = 1;
       NODE(t,new_root)->branch[0].key = k;
       NODE(t,new_root)->branch[0].child = ROOTINDEX(t);
-      NODE(t,new_root)->branch[1].child = (index_t) ptr;
+      NODE(t,new_root)->branch[1].child = data;
 
       ROOTINDEX(t) = new_root;
     }
 }
 
 static int BTreeInsertNode(btree_t t, index_t nidx,
-                           double *k, void **ptr)
+                           double *k, index_t *ptr)
 /*ptr holds data and can return node_t*/
 {
   int i;
@@ -121,7 +107,7 @@ static int BTreeInsertNode(btree_t t, index_t nidx,
         {
           return FALSE;
         }
-      else 
+      else
         /* node split */
         {
           return BTreeAddBranch(t, nidx, i, k, ptr); /*propagate split*/
@@ -134,8 +120,8 @@ static int BTreeInsertNode(btree_t t, index_t nidx,
 }
 
 static int BTreeAddBranch(btree_t t, index_t nidx,
-                          int idx, 
-                          double *k, void **ptr)
+                          int idx,
+                          double *k, index_t *ptr)
 {
   int i,j;
   double key[MAXCARD];
@@ -148,7 +134,7 @@ static int BTreeAddBranch(btree_t t, index_t nidx,
   n = NODE(t,nidx);
 
   if (n->count < MAXCARD - 1)
-    {      
+    {
       i = n->count;
       if (i > 0)
         /*shift to get space*/
@@ -165,10 +151,10 @@ static int BTreeAddBranch(btree_t t, index_t nidx,
     }
   else
     {
-      for(i = n->count, j = MAXCARD_(t); 
-          n->branch[i-1].key > *k; 
+      for(i = n->count, j = MAXCARD_(t);
+          n->branch[i-1].key > *k;
           i--, j--)
-        { 
+        {
           key[j - 1] = n->branch[i-1].key;
           branch[j] = n->branch[i].child;
         }
@@ -202,7 +188,7 @@ static int BTreeAddBranch(btree_t t, index_t nidx,
       n->branch[i].child = branch[i];
 
       *k = key[i];
-      *ptr = (void *) nidx1;
+      *ptr = nidx1;
 
       for (j = 0, i++; i < MAXCARD; j ++, i ++)
         {
@@ -229,7 +215,7 @@ static int BTreePickBranch(btree_t t, index_t nidx, double k)
 }
 
 static int BTreeAddLeaf(btree_t t, index_t nidx,
-                        double *k, void **ptr)
+                        double *k, index_t *ptr)
 {
   int i,j;
   double key[MAXCARD];
@@ -240,7 +226,7 @@ static int BTreeAddLeaf(btree_t t, index_t nidx,
 
   n = NODE(t, nidx);
   assert(n);
-  
+
   if (n->count < MAXCARD_(t) - 1) /*split not necessary*/
     {
       i = n->count;
@@ -257,8 +243,8 @@ static int BTreeAddLeaf(btree_t t, index_t nidx,
     }
   else /*needs to split*/
     {
-      for(i = n->count - 1, j = MAXCARD - 1; 
-          n->branch[i].key > *k; 
+      for(i = n->count - 1, j = MAXCARD - 1;
+          n->branch[i].key > *k;
           i--, j--)
         {
           key[j] = n->branch[i].key;
@@ -272,7 +258,7 @@ static int BTreeAddLeaf(btree_t t, index_t nidx,
           key[j] = n->branch[i].key;
           branch[j] = n->branch[i].child;
         }
-      
+
       n->count = 0;
 
       nidx1 = BTreeNewNode(t);
@@ -289,7 +275,7 @@ static int BTreeAddLeaf(btree_t t, index_t nidx,
           n->count ++;
         }
       *k = key[i-1];
-      *ptr = (void *) nidx1;
+      *ptr = nidx1;
       for (j = 0; i < MAXCARD; j ++, i ++)
         {
           n1->branch[j].key = key[i];
@@ -306,18 +292,18 @@ static int BTreeAddLeaf(btree_t t, index_t nidx,
 }
 
 
-void *BTreeMin (btree_t t, index_t *f, int *i)
+index_t BTreeMin (btree_t t, index_t *f, int *i)
 {
   return BTreeMin_(t,ROOTINDEX(t), f, i);
 }
 
-void *BTreeMin_ (btree_t t, index_t nidx,
+index_t BTreeMin_ (btree_t t, index_t nidx,
                 index_t *f, int *i)
 {
   node_t n;
 
   n = NODE(t, nidx);
-  
+
   if (n->level > 0)
     return BTreeMin_(t, n->branch[0].child, f, i);
   else
@@ -328,30 +314,30 @@ void *BTreeMin_ (btree_t t, index_t nidx,
             *f = nidx;
           if(i)
             *i = 0;
-          return (void *) n->branch[0].child;
+          return n->branch[0].child;
         }
     }
   if (f)
     *f = 0;
   if (i)
     *i = -1;
-  return NULL;
+  return 0;
 }
 
-void *BTreeMax (btree_t t, index_t *f, int *i)
+index_t BTreeMax (btree_t t, index_t *f, int *i)
 {
   return BTreeMax_(t, ROOTINDEX(t), f, i);
 }
 
-void *BTreeMax_ (btree_t t, index_t nidx,
-                index_t *f, int *i)
+index_t BTreeMax_ (btree_t t, index_t nidx,
+                   index_t *f, int *i)
 {
   node_t n;
-  
+
   n = NODE(t,nidx);
   if (n->level > 0)
     return BTreeMax_(t, n->branch[n->count].child, f, i);
-  else  
+  else
     {
       if (n->count > 0)
         {
@@ -359,22 +345,22 @@ void *BTreeMax_ (btree_t t, index_t nidx,
             *f = nidx;
           if(i)
             *i = n->count - 1;
-          return (void *) n->branch[n->count -1].child;
+          return n->branch[n->count -1].child;
         }
     }
   if (f)
     *f = 0;
   if (i)
     *i = -1;
-  return NULL;
+  return 0;
 }
 
-void * BTreeSearch (btree_t t, double k, int s, index_t *f, int *i)
+index_t BTreeSearch (btree_t t, double k, int s, index_t *f, int *i)
 {
   return BTreeSearch_(t, ROOTINDEX(t), k, s, f, i);
 }
 
-void * BTreeSearch_ (btree_t t, index_t nidx, 
+index_t BTreeSearch_ (btree_t t, index_t nidx,
                     double k, int s, index_t *f, int *i)
 {
   int j;
@@ -400,7 +386,7 @@ void * BTreeSearch_ (btree_t t, index_t nidx,
                 *f = nidx;
               if (i)
                 *i = j;
-              return (void *)n->branch[j].child;
+              return n->branch[j].child;
             }
       if (s == GE || s == GT) /* >= or > */
         {
@@ -411,7 +397,7 @@ void * BTreeSearch_ (btree_t t, index_t nidx,
               {
                 if (i)
                   *i = j;
-                return (void *) n->branch[j].child;
+                return n->branch[j].child;
               }
         }
     }
@@ -419,10 +405,10 @@ void * BTreeSearch_ (btree_t t, index_t nidx,
     *f = 0;
   if (i)
     *i = -1;
-  return NULL;
+  return 0;
 }
 
-void *BTreeSearchNext (double max, int s, 
+index_t BTreeSearchNext (double max, int s,
                        btree_t t, index_t *nidx, int *i)
 {
   node_t n;
@@ -431,11 +417,11 @@ void *BTreeSearchNext (double max, int s,
   assert(s == LT || s == LE);
 
   n = NODE(t, *nidx);
- 
+
   if (*i == n->count - 1)
     {
       if (!n->branch[MAXCARD_(t) - 1].child) /*terminou*/
-        return NULL;
+        return 0;
       *nidx = n->branch[MAXCARD_(t) - 1].child;
       *i = 0;
       n = NODE(t, *nidx);
@@ -445,12 +431,17 @@ void *BTreeSearchNext (double max, int s,
 
   if (n->branch[*i].key > max ||
       (n->branch[*i].key == max && s == LT))
-    return NULL;
+    return 0;
 
-  return (void *) n->branch[*i].child;
+  return n->branch[*i].child;
 }
 
-void BTreePrint(btree_t t, index_t nidx)
+void BTreePrint(btree_t t)
+{
+  BTreePrint_(t, ROOTINDEX(t));
+}
+
+void BTreePrint_(btree_t t, index_t nidx)
 {
   int j;
   node_t n;
@@ -472,5 +463,5 @@ void BTreePrint(btree_t t, index_t nidx)
 
   if (n->level > 0)
     for (j = 0; j < n->count; j++)
-      BTreePrint(t, n->branch[j].child);
+      BTreePrint_(t, n->branch[j].child);
 }

@@ -5,6 +5,7 @@
 
 #include "udi.h"
 #include "udi_indexers.h"
+#include "gmpis.h"
 
 /*TODO: remove this*/
 /* we can have this stactic because it is written once */
@@ -146,7 +147,7 @@ Yap_udi_search(PredEntry *p)
     info = info->next;
   if (!info)
     return NULL;
-  return info->functions->search(info->cb);
+  return info->functions->search(info->cb,NULL,NULL);
 }
 
 /* control_t linked list maintenance */
@@ -176,7 +177,7 @@ control_t UdiInit (Term spec, void * pred, int arity)
   Atom idxtype;
   control_t control;
   mdalloc_t clausulelist;
-  
+
   n =  sizeof (udi_indexers) / sizeof (struct UDIIndexers);
   if (!udi_indexers[0].atomdecl)
     { /*LookupAtom optimization*/
@@ -198,7 +199,7 @@ control_t UdiInit (Term spec, void * pred, int arity)
             {
               if (idxtype == udi_indexers[j].atomdecl)
                 {
-                  control = add_control(i, pred, 
+                  control = add_control(i, pred,
                                         (void *) &(udi_indexers[j].control),
                                         control);
                   valid_spec = 1;
@@ -211,10 +212,10 @@ control_t UdiInit (Term spec, void * pred, int arity)
             }
           if (!valid_spec && idxtype != AtomMinus)
             fprintf(stderr, "Invalid Spec (%s)\n", AtomName(idxtype));
-  
+
         }
     }
-  
+
   return control;
 }
 
@@ -260,47 +261,54 @@ control_t UdiInsert (Term term,control_t control,void *clausule)
   return control;
 }
 
-void *UdiSearch (control_t control)
+static int callback(void *key, size_t data, void *arg)
+{
+  GMPISAdd((iset_t) arg, data);
+  return TRUE;
+}
+
+void *UdiSearch (control_t control, YAP_UdiCallback c, void *d)
 {
   control_t iter;
   void * r;
+  iset_t result;
 
   assert(control);
 
   iter = control;
   while (iter)
     {
-      r = control->controlblock->search(control);
+      result = GMPISInit();
+      fprintf(stderr, "%p %p Result\n", callback, (void *) result);
+      r = control->controlblock->search(control, callback, (void *) result);
       if (r)
         {
-          mpz_t *result;
-          mp_bitcnt_t last = 0;
+          size_t last = 0;
           struct ClauseList clauselist;
           void **clausules;
 
-          result = (mpz_t *) r;
+          //result = (iset_t) r;
           clausules = (void **) (control->clausules->region + sizeof(int));
 
           Yap_ClauseListInit(&clauselist);
-          last = mpz_scan1(*result,last);
-          
-          while (last != ~((mp_bitcnt_t) 0))
+          last = GMPISNext(result,last);
+
+          while (last != NOMORE)
             {
               Yap_ClauseListExtend(&clauselist,
                                    clausules[last],
                                    control->pred);
 
-              fprintf(stderr, "%ld %p %p\n", 
+              fprintf(stderr, "%ld %p %p\n",
                       last,
                       clausules[last],
                       control->pred );
 
-              last = mpz_scan1(*result,++last);
+              last = GMPISNext(result,++last);
             }
           fprintf(stderr, "\n\n");
-          mpz_clear(*result);
-          //free(r);
-          
+          GMPISDestroy(result);
+
           Yap_ClauseListClose(&clauselist);
 
           if (Yap_ClauseListCount(&clauselist) == 0)

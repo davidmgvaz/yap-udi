@@ -1,103 +1,87 @@
-#ifndef _BTREE_
-#define _BTREE_
+#ifndef __BTREE_H__
+#define __BTREE_H__
 
-#ifndef FALSE
-#define FALSE 0
-#endif
-#ifndef TRUE
-#define TRUE !FALSE
-#endif
-
-#define PGSIZE 4096
-#define MAXCARD (int) ((PGSIZE-(2*sizeof(int))) / (2 * sizeof(void*)))
-#define MINCARD (MAXCARD / 2)
-
-/* TODO: CHECK size_t needs to be the same size as void */
+#ifndef __BTREE_PRIVATE_H__
+typedef void * btree_t;
 typedef size_t index_t;
+#endif
 
-struct Branch
-{
-  double key;
-  index_t child;  /*in leaf nodes last is ptr to next in order node*/
-};
-typedef struct Branch branch_t;
-
-#include <stddef.h>
-#define FLEXIBLE_SIZE 1
-#define SIZEOF_FLEXIBLE(type, member, length) \
-  ( offsetof(type, member) + (length) * sizeof ((type *)0)->member[0] )
-
-struct Node
-{
-  int count;
-  int level;
-  /* double key[MAXCARD - 1]; */
-  /* void * branch[MAXCARD]; */
-
-  /* one key discarded with this representation*/
-  branch_t branch[FLEXIBLE_SIZE];
-};
-typedef struct Node * node_t;
-#define SIZEOF_NODE(maxcard) SIZEOF_FLEXIBLE(struct Node, branch, maxcard)
-
-struct BTreeInfo
-{
-  /* info on the tree structure */
-  size_t maxcard;
-  size_t mincard;
-  
-  /* root node index */
-  size_t nidx;
-};
-typedef struct BTreeInfo * btreeinfo_t;
-
-#include "mdalloc.h"
-typedef mdalloc_t btree_t;
-
-/* b+tree info is allways stored in the first page
- * of m
- * (btreeinfo_t) t->region
+/*
+ * Alocates and initializes a new b+tree structure
  */
-#define BTREEINFO(t) ((btreeinfo_t) t->region)
-
-#define MAXCARD_(t) (BTREEINFO(t)->maxcard)
-#define MINCARD_(t) (BTREEINFO(t)->mincard)
-
-#define NODE(t,index) ((node_t) MDGET(t,index))
-
-#define ROOTINDEX(t) (BTREEINFO(t)->nidx)
-#define ROOTNODE(t) (NODE(t, ROOTINDEX(t)))
-
-struct Range
-{
-  double min;
-  int le;
-  double max;
-  int ge;
-};
-typedef struct Range range_t;
-
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
-
 extern btree_t BTreeNew (void);
-extern void BTreeInsert (btree_t, double, void *);
 
-extern void *BTreeMin(btree_t, index_t *, int *);
-extern void *BTreeMax(btree_t, index_t *, int *);
+/*
+ * Inserts in the b+tree the object with key key
+ */
+extern void BTreeInsert (btree_t btree, double key, index_t object);
 
-#define EQ 1
+/*
+ * Searchs the b+tree for the min key object returning it
+ *
+ * If nidx(node index) and bidx(branch index) is not NULL it those values
+ */
+extern index_t BTreeMin(btree_t btree, index_t *nidx, int *bidx);
+
+/*
+ * Searchs the b+tree for the max key object returning it
+ *
+ * If nidx(node index) and bidx(branch index) is not NULL it those values
+ */
+extern index_t BTreeMax(btree_t btree, index_t *nidx, int *bidx);
+
+/* Seach Kinds */
+#define EQ 1 /* BTreeSearch(btree, key, EQ, NULL, NULL); */
 #define LE 2
 #define LT 3
+/* First call: BTreeMin(btree, nidx, bidx);
+   Next Calls(until NULL is returned):
+        BTreeSearchNext(key_max, LT || LE, btree, nidx, bidx);*/
 #define GE 4
 #define GT 5
+/* First call: BTreeSearch(btree, key_min, GE || GT, nidx, bidx);
+   Next Calls(until NULL is returned):
+        BTreeSearchNext(key_min, LT || LE, btree, nidx, bidx);*/
 
-extern void *BTreeSearch(btree_t, double, int, index_t *, int *);
+/* Range Searches
+ * First call: BTreeSearch(btree, key_min, GE || GT, nidx, bidx);
+ * Next Calls(until NULL is returned):
+ *       BTreeSearchNext(key_max, LT || LE, btree, nidx, bidx);
+ */
 
-extern void *BTreeSearchNext (double, int, btree_t, index_t *, int *);
+/*
+ * Searchs the b+tree for:
+ * if kind == EQ finds the key object returning it
+ * if kind == GE || GT finds the first valid key returning it
+ *
+ * Returns NULL on fail to find
+ *
+ * Other parameter to kind will fail
+ *
+ * If nidx(node index) and bidx(branch index) is not NULL it those values
+ */
+extern index_t BTreeSearch(btree_t btree, double key, int kind,
+                           index_t *nidx, int *bidx);
 
+/*
+ * Searches next valid answers given nidx, bidx where set in previous call to
+ * BTreeMin or BTreeSearch
+ *
+ * It will return the valid key objects with kind LE or LT, NULL otherwise
+ *
+ * nidx(node index) and bidx(branch index) will also be set
+ */
+extern index_t BTreeSearchNext (double key, int kind,
+                                btree_t btree, index_t *nidx, int *bidx);
+
+/*
+ * Destroys b+tree, freeing all the memory allocated to it
+ */
 extern void BTreeDestroy (btree_t);
 
-extern void BTreePrint(btree_t, index_t);
+/*
+ * Debug function, prints b+tree
+ */
+extern void BTreePrint(btree_t);
 
-#endif /* _BTREE_ */
+#endif /*__BTREE_H__*/

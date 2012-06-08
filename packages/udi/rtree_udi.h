@@ -1,10 +1,6 @@
 #ifndef _RTREE_UDI_
 #define _RTREE_UDI_
 
-/* #ifndef _RTREE_ */
-/* typedef void control_t; */
-/* #endif */
-
 /*Prolog term from :- udi(a(-,+,+)).
   User defined index announce
 */
@@ -18,7 +14,7 @@ extern control_t RtreeUdiInsert (Term term, /*asserted term*/
                                   index_t clausule); /*to store in tree and return
                                                      in search*/
 
-extern void *RtreeUdiSearch (control_t control);
+extern void *RtreeUdiSearch (control_t control, YAP_UdiCallback callback, void *data);
 extern int RtreeUdiDestroy(control_t control);
 
 #endif /* _RTREE_UDI_ */
