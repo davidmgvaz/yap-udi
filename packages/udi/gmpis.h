@@ -9,6 +9,10 @@ typedef mpz_t * iset_t;
 
 extern iset_t GMPISInit(void);
 
+extern int GMPISEmpty(iset_t s);
+
+extern int GMPISCount(iset_t s);
+
 extern void GMPISAdd(iset_t, size_t);
 
 extern iset_t GMPISInterset(iset_t, iset_t);

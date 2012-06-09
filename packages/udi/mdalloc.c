@@ -51,7 +51,7 @@ mdalloc_t MDInit (int fd, int flags)
           m->size = buffer.st_size;
         }
 
-      m->region = (void *) mmap(NULL, m->size, flags, 
+      m->region = (void *) mmap(NULL, m->size, flags,
                                 MAP_SHARED, fd, 0);
       if (m->region == MAP_FAILED)
         {
@@ -59,10 +59,10 @@ mdalloc_t MDInit (int fd, int flags)
           free(m);
           return NULL;
         }
-    } 
+    }
   else /*memory based allways in Write Mode*/
     {
-      m->region = (void *) mmap(NULL, m->size, PROT_READ | PROT_WRITE, 
+      m->region = (void *) mmap(NULL, m->size, PROT_READ | PROT_WRITE,
                                 MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
       if (m->region == MAP_FAILED)
         {
@@ -80,7 +80,7 @@ void MDDestroy (mdalloc_t m)
   int r;
 
   assert(m && m->region);
-  
+
   r = munmap(m->region, m->size);
   if (r == -1)
     {
@@ -96,10 +96,9 @@ size_t MDAlloc (mdalloc_t m)
 {
   int r;
   size_t oldsize;
-  void * address;
 
   assert(m && m->region);
-  
+
   oldsize = m->size;
   m->size += mdpagesize;
 
@@ -129,13 +128,10 @@ size_t MDAlloc (mdalloc_t m)
     }
 
   /*expand*/
-  address = m->region;
-    m->region = (void *) mremap(m->region, oldsize, m->size, MREMAP_MAYMOVE);
+  m->region = (void *) mremap(m->region, oldsize, m->size, MREMAP_MAYMOVE);
   if (m->region == MAP_FAILED)
     {
       perror("MDAlloc mremap");
-      fprintf(stderr, "%p, %zu, %zu, %d\n", 
-              address, oldsize, m->size, MREMAP_MAYMOVE);
       return 0;
     }
 

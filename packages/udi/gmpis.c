@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 #include "gmpis.h"
@@ -11,6 +12,16 @@ iset_t GMPISInit(void)
   mpz_init(*s);
 
   return s;
+}
+
+int GMPISEmpty(iset_t s)
+{
+  return (mpz_get_ui (*s) == 0);
+}
+
+int GMPISCount(iset_t s)
+{
+  return (mpz_popcount(*s));
 }
 
 void GMPISAdd(iset_t s, size_t i)

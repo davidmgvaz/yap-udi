@@ -111,7 +111,6 @@ INTERFACE_HEADERS = \
 	$(srcdir)/include/clause_list.h \
 	$(srcdir)/include/dswiatoms.h \
 	$(srcdir)/include/udi.h \
-	$(srcdir)/include/udi_indexers.h \
 	$(srcdir)/include/yap_structs.h \
 	$(srcdir)/include/YapInterface.h \
 	$(srcdir)/include/SWI-Prolog.h \
@@ -258,13 +257,6 @@ C_SOURCES= \
 	$(srcdir)/C/sort.c $(srcdir)/C/stdpreds.c $(srcdir)/C/sysbits.c \
 	$(srcdir)/C/threads.c \
 	$(srcdir)/C/tracer.c $(srcdir)/C/unify.c $(srcdir)/C/userpreds.c  \
-	$(srcdir)/C/udi.c \
-	$(srcdir)/packages/udi/rtree.c \
-	$(srcdir)/packages/udi/rtree_udi.c \
-	$(srcdir)/packages/udi/b+tree.c \
-	$(srcdir)/packages/udi/b+tree_udi.c \
-	$(srcdir)/packages/udi/mdalloc.c \
-	$(srcdir)/packages/udi/gmpis.c \
 	$(srcdir)/C/utilpreds.c $(srcdir)/C/write.c $(srcdir)/console/yap.c \
 	$(srcdir)/C/ypstdio.c \
 	$(srcdir)/BEAM/eam_am.c $(srcdir)/BEAM/eam_showcode.c \
@@ -277,7 +269,9 @@ C_SOURCES= \
 	$(srcdir)/OPTYap/or.scheduler.c $(srcdir)/OPTYap/or.cut.c \
 	$(srcdir)/OPTYap/tab.tries.c $(srcdir)/OPTYap/tab.completion.c \
 	$(srcdir)/library/mpi/mpi.c $(srcdir)/library/mpi/mpe.c \
-	$(srcdir)/library/lammpi/yap_mpi.c $(srcdir)/library/lammpi/hash.c $(srcdir)/library/lammpi/prologterms2c.c  \
+	$(srcdir)/library/lammpi/yap_mpi.c \
+	$(srcdir)/library/lammpi/hash.c \
+	$(srcdir)/library/lammpi/prologterms2c.c \
 	$(srcdir)/C/cut_c.c \
 	$(srcdir)/library/dialect/swi/fli/swi.c \
 	$(srcdir)/library/dialect/swi/fli/blobs.c \
@@ -288,7 +282,16 @@ C_SOURCES= \
 	$(srcdir)/MYDDAS/myddas_shared.c \
 	$(srcdir)/MYDDAS/myddas_statistics.c \
 	$(srcdir)/MYDDAS/myddas_top_level.c \
-	$(srcdir)/MYDDAS/myddas_wkb2prolog.c
+	$(srcdir)/MYDDAS/myddas_wkb2prolog.c \
+	$(srcdir)/packages/udi/mdalloc.c \
+	$(srcdir)/packages/udi/rtree.c \
+	$(srcdir)/packages/udi/rtree_udi.c \
+	$(srcdir)/packages/udi/b+tree.c \
+	$(srcdir)/packages/udi/b+tree_udi.c \
+	$(srcdir)/packages/udi/gmpis.c \
+	$(srcdir)/packages/udi/udi_indexers.c \
+	$(srcdir)/packages/udi/udi.c \
+
 
 PLCONS_SOURCES = \
 	$(srcdir)/console/LGPL/pl-nt.c \
@@ -369,7 +372,7 @@ ENGINE_OBJECTS = \
 	myddas_wkb2prolog.o modules.o other.o   \
 	parser.o qlyr.o qlyw.o save.o scanner.o sort.o stdpreds.o \
 	sysbits.o threads.o tracer.o \
-	udi.o rtree.o rtree_udi.o mdalloc.o gmpis.o \
+	udi.o mdalloc.o rtree.o rtree_udi.o udi_indexers.o gmpis.o \
 	unify.o userpreds.o utilpreds.o \
 	write.o \
 	blobs.o swi.o ypstdio.o $(IOLIB_OBJECTS)  @MPI_OBJS@
@@ -467,8 +470,11 @@ save.o: $(srcdir)/C/save.c config.h
 sysbits.o: $(srcdir)/C/sysbits.c config.h
 	$(CC) -c $(CFLAGS) $(srcdir)/C/sysbits.c -o $@
 
-udi.o: $(srcdir)/C/udi.c config.h
-	$(CC) -c $(C_INTERF_FLAGS) $(srcdir)/C/udi.c -o $@
+udi.o: $(srcdir)/packages/udi/udi.c config.h
+	$(CC) -c $(C_INTERF_FLAGS) $(srcdir)/packages/udi/udi.c -o $@
+
+mdalloc.o: $(srcdir)/packages/udi/mdalloc.c config.h
+	$(CC) -c $(C_INTERF_FLAGS) $(srcdir)/packages/udi/mdalloc.c -o $@
 
 rtree.o: $(srcdir)/packages/udi/rtree.c config.h
 	$(CC) -c $(C_INTERF_FLAGS) $(srcdir)/packages/udi/rtree.c -o $@
@@ -482,11 +488,11 @@ b+tree.o: $(srcdir)/packages/udi/b+tree.c config.h
 b+tree_udi.o: $(srcdir)/packages/udi/b+tree_udi.c config.h
 	$(CC) -c $(C_INTERF_FLAGS) $(srcdir)/packages/udi/b+tree_udi.c -o $@
 
-mdalloc.o: $(srcdir)/packages/udi/mdalloc.c config.h
-	$(CC) -c $(C_INTERF_FLAGS) $(srcdir)/packages/udi/mdalloc.c -o $@
-
 gmpis.o: $(srcdir)/packages/udi/gmpis.c config.h
 	$(CC) -c $(C_INTERF_FLAGS) $(srcdir)/packages/udi/gmpis.c -o $@
+
+udi_indexers.o: $(srcdir)/packages/udi/udi_indexers.c config.h
+	$(CC) -c $(C_INTERF_FLAGS) $(srcdir)/packages/udi/udi_indexers.c -o $@
 
 yap.o: $(srcdir)/console/yap.c config.h
 	$(CC) -c $(CFLAGS) -I$(srcdir)/include $(srcdir)/console/yap.c -o $@

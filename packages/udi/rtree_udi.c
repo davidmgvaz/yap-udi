@@ -17,9 +17,6 @@
 /* integer set */
 #include "gmpis.h"
 
-/*Hack to remove*/
-#define NARGS 1
-
 static int YAP_IsNumberTermToFloat (Term term, YAP_Float *n)
 {
   if (YAP_IsIntTerm (term) != FALSE)
@@ -57,149 +54,56 @@ static rect_t RectOfTerm (Term term)
   return (rect);
 }
 
-control_t RtreeUdiInit (Term spec,
-                         void * pred,
-                         int arity){
-  control_t control;
-  YAP_Term arg;
-  int i, c;
-  /*  YAP_Term mod;  */
-
-  /*  spec = Yap_StripModule(spec, &mod); */
-  if (! YAP_IsApplTerm(spec))
-    return (NULL);
-
-  control = (control_t) malloc (sizeof(*control));
-  assert(control);
-  memset((void *) control,0, sizeof(*control));
-
-  c = 0;
-  for (i = 1; i <= arity; i ++)
-    {
-      arg = YAP_ArgOfTerm(i,spec);
-      if (YAP_IsAtomTerm(arg)
-          && strcmp("+",YAP_AtomName(YAP_AtomOfTerm(arg))) == 0)
-        {
-
-          control[c].pred = pred;
-          control[c++].arg = i;
-        }
-    }
-
-/*  for (i = 0; i < NARGS; i++)
-    printf("%d,%p\t",(*control)[i].arg,(*control)[i].tree);
-  printf("\n"); */
-
-  return control;
+void RtreeUdiInit (control_t control){
+  control->tree = RTreeNew();
 }
 
-control_t RtreeUdiInsert (Term term,control_t control,index_t clausule)
+void RtreeUdiInsert (Term term,control_t control,index_t clausule)
 {
-  int i;
   rect_t r;
 
   assert(control);
 
-  for (i = 0; i < NARGS && control[i].arg != 0 ; i++)
-    {
-      r = RectOfTerm(YAP_ArgOfTerm(control[i].arg,term));
-      if (!control[i].tree)
-        control[i].tree = RTreeNew();
-      RTreeInsert(control[i].tree,r,clausule);
-    }
-
-  /*  printf("insert %p\n", clausule); */
-
-  return (control);
+  r = RectOfTerm(YAP_ArgOfTerm(control->arg,term));
+  /*TODO: remove latter*/
+  if (!control->tree)
+    control->tree = RTreeNew();
+  RTreeInsert(control->tree,r,clausule);
 }
-
-/* static int callback(rect_t r, index_t data, void *arg) */
-/* { */
-/*   /\* callback_m_t x; *\/ */
-/*   /\* x = (callback_m_t) arg; *\/ */
-/*   /\* return Yap_ClauseListExtend(x->cl,data,x->pred); *\/ */
-
-/*   mpz_setbit(*((mpz_t *) arg), data); */
-
-/*   return TRUE; */
-/* } */
 
 /*ARGS ARE AVAILABLE*/
-void *RtreeUdiSearch (control_t control, YAP_UdiCallback callback, void * arg)
+int RtreeUdiSearch (control_t control, Yap_UdiCallback callback, void * arg)
 {
   rect_t r;
-  int i;
-  /* struct ClauseList clauselist; */
-  /* struct CallbackM cm; */
-  /* callback_m_t c; */
   YAP_Term t, Constraints;
-  mpz_t *result;
 
-  /*RTreePrint ((*control)[0].tree);*/
+  t = YAP_A(control->arg);
+  if (YAP_IsAttVar(t))
+    {
+      /*get the constraits rect*/
+      Constraints = YAP_AttsOfVar(t);
+      /* Yap_DebugPlWrite(Constraints); */
+      if (YAP_IsApplTerm(Constraints))
+        {
+          r = RectOfTerm(YAP_ArgOfTerm(2,Constraints));
+        }
+      else  /*hack to destroy udi*/
+        {
+          RTreeDestroy(control->tree);
+          fprintf(stderr,"Destroy RTree\n");
+          control->tree = NULL;
+          return -1;
+        }
 
-  for (i = 0; i < NARGS && control[i].arg != 0 ; i++) {
-    t = YAP_A(control[i].arg);
-    if (YAP_IsAttVar(t))
-      {
-        /*get the constraits rect*/
-        Constraints = YAP_AttsOfVar(t);
-        /* Yap_DebugPlWrite(Constraints); */
-        if (YAP_IsApplTerm(Constraints))
-          {
-            r = RectOfTerm(YAP_ArgOfTerm(2,Constraints));
-          }
-        else  /*hack to destroy udi*/
-          {
-            RTreeDestroy(control[i].tree);
-            fprintf(stderr,"Destroy RTree\n");
-            control[i].tree = NULL;
-            return NULL;
-          }
-
-        /* c = &cm; */
-        /* c->cl = Yap_ClauseListInit(&clauselist); */
-        /* c->pred = control[i].pred; */
-        /* if (!c->cl) */
-        /*   return NULL; /\*? or fail*\/ */
-        /* result = (mpz_t *) malloc(sizeof(*result)); */
-        /* assert(result); */
-        /* mpz_init(*result); */
-        fprintf(stderr, "%p %p\n", callback, arg);
-        RTreeSearch(control[i].tree, r, (SearchHitCallback) callback, arg);
-        return arg;
-  /*       Yap_ClauseListClose(c->cl); */
-
-  /*       if (Yap_ClauseListCount(c->cl) == 0) */
-  /*         { */
-  /*           Yap_ClauseListDestroy(c->cl); */
-  /*           return Yap_FAILCODE(); */
-  /*         } */
-
-  /*       if (Yap_ClauseListCount(c->cl) == 1) */
-  /*         { */
-  /*           return Yap_ClauseListToClause(c->cl); */
-  /*         } */
-
-  /*       return Yap_ClauseListCode(c->cl); */
-      }
-  }
-  return NULL; /*YAP FALLBACK*/
+      return RTreeSearch(control->tree, r, (SearchHitCallback) callback, arg);
+    }
+  return -1; /*YAP FALLBACK*/
 }
 
-int RtreeUdiDestroy(control_t control)
+void RtreeUdiDestroy(control_t control)
 {
-  int i;
-
   assert(control);
 
-  for (i = 0; i < NARGS && control[i].arg != 0; i++)
-    {
-      if (control[i].tree)
-        RTreeDestroy(control[i].tree);
-    }
-
-  free(control);
-  control = NULL;
-
-  return TRUE;
+  if (control->tree)
+    RTreeDestroy(control->tree);
 }

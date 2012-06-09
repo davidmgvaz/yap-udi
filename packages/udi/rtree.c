@@ -81,7 +81,6 @@ int RTreeSearch (rtree_t t, rect_t s, SearchHitCallback f, void *arg)
 {
   assert(t);
   assert(ROOTNODE(t));
-  fprintf(stderr, "%p %p\n", f, arg);
   return RTreeSearchNode(t, ROOTINDEX(t), s, f, arg);
 }
 
@@ -93,7 +92,6 @@ static int RTreeSearchNode (rtree_t t, index_t index,
   node_t n;
 
   n = NODE(t,index);
-  fprintf(stderr, "%p %p\n", f, arg);
 
   if (n->level > 0)
     {
@@ -107,7 +105,6 @@ static int RTreeSearchNode (rtree_t t, index_t index,
         if (RectOverlap (s,n->branch[i].mbr))
           {
             c ++;
-            fprintf(stderr, "%p %p Before callback %zu\n", f, arg, n->branch[i].child);
             if (f)
               if ( !f((void *) &(n->branch[i].mbr), n->branch[i].child, arg))
                 return c;
