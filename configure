@@ -641,6 +641,7 @@ MPI_OBJS
 LAM_MPI_CC
 YAPMPILIB
 IN_UNIX
+LIBJPL
 JAR
 JAVADOC
 JAVAC
@@ -5029,7 +5030,7 @@ $as_echo "no" >&6; }
 
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-CXXFLAGS="$my_save_cflags"
+CXXFLAGS="$my_save_cxxflags"
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -5771,11 +5772,128 @@ _ACEOF
 
 fi
 
+      { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lcomdlg32" >&5
+$as_echo_n "checking for main in -lcomdlg32... " >&6; }
+if ${ac_cv_lib_comdlg32_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lcomdlg32  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_comdlg32_main=yes
+else
+  ac_cv_lib_comdlg32_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_comdlg32_main" >&5
+$as_echo "$ac_cv_lib_comdlg32_main" >&6; }
+if test "x$ac_cv_lib_comdlg32_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBCOMDLG32 1
+_ACEOF
+
+  LIBS="-lcomdlg32 $LIBS"
+
+fi
+
+      { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lshell32" >&5
+$as_echo_n "checking for main in -lshell32... " >&6; }
+if ${ac_cv_lib_shell32_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lshell32  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_shell32_main=yes
+else
+  ac_cv_lib_shell32_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_shell32_main" >&5
+$as_echo "$ac_cv_lib_shell32_main" >&6; }
+if test "x$ac_cv_lib_shell32_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBSHELL32 1
+_ACEOF
+
+  LIBS="-lshell32 $LIBS"
+
+fi
+
       EXTRA_LIBS_FOR_DLLS="-lws2_32"
     elif test "$target_os" = "cygwin"
     then
       CC="${CC}  -mno-cygwin"
       CXX="${CXX}  -mno-cygwin"
+      { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lcomdlg32" >&5
+$as_echo_n "checking for main in -lcomdlg32... " >&6; }
+if ${ac_cv_lib_comdlg32_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lcomdlg32  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_comdlg32_main=yes
+else
+  ac_cv_lib_comdlg32_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_comdlg32_main" >&5
+$as_echo "$ac_cv_lib_comdlg32_main" >&6; }
+if test "x$ac_cv_lib_comdlg32_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBCOMDLG32 1
+_ACEOF
+
+  LIBS="-lcomdlg32 $LIBS"
+
+fi
+
       { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lwsock32" >&5
 $as_echo_n "checking for main in -lwsock32... " >&6; }
 if ${ac_cv_lib_wsock32_main+:} false; then :
@@ -5812,6 +5930,45 @@ if test "x$ac_cv_lib_wsock32_main" = xyes; then :
 _ACEOF
 
   LIBS="-lwsock32 $LIBS"
+
+fi
+
+      { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lshell32" >&5
+$as_echo_n "checking for main in -lshell32... " >&6; }
+if ${ac_cv_lib_shell32_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lshell32  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_shell32_main=yes
+else
+  ac_cv_lib_shell32_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_shell32_main" >&5
+$as_echo "$ac_cv_lib_shell32_main" >&6; }
+if test "x$ac_cv_lib_shell32_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBSHELL32 1
+_ACEOF
+
+  LIBS="-lshell32 $LIBS"
 
 fi
 
@@ -5852,6 +6009,84 @@ if test "x$ac_cv_lib_wsock32_main" = xyes; then :
 _ACEOF
 
   LIBS="-lwsock32 $LIBS"
+
+fi
+
+      { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lcomdlg32" >&5
+$as_echo_n "checking for main in -lcomdlg32... " >&6; }
+if ${ac_cv_lib_comdlg32_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lcomdlg32  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_comdlg32_main=yes
+else
+  ac_cv_lib_comdlg32_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_comdlg32_main" >&5
+$as_echo "$ac_cv_lib_comdlg32_main" >&6; }
+if test "x$ac_cv_lib_comdlg32_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBCOMDLG32 1
+_ACEOF
+
+  LIBS="-lcomdlg32 $LIBS"
+
+fi
+
+      { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lshell32" >&5
+$as_echo_n "checking for main in -lshell32... " >&6; }
+if ${ac_cv_lib_shell32_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lshell32  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_shell32_main=yes
+else
+  ac_cv_lib_shell32_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_shell32_main" >&5
+$as_echo "$ac_cv_lib_shell32_main" >&6; }
+if test "x$ac_cv_lib_shell32_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBSHELL32 1
+_ACEOF
+
+  LIBS="-lshell32 $LIBS"
 
 fi
 
@@ -6289,13 +6524,49 @@ fi
 
 if test "$yap_cv_readline" != "no"
 then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lncurses" >&5
+$as_echo_n "checking for main in -lncurses... " >&6; }
+if ${ac_cv_lib_ncurses_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lncurses  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_ncurses_main=yes
+else
+  ac_cv_lib_ncurses_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_ncurses_main" >&5
+$as_echo "$ac_cv_lib_ncurses_main" >&6; }
+if test "x$ac_cv_lib_ncurses_main" = xyes; then :
+
+		LIBS="$LIBS -lncurses"
+
+fi
+
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lreadline" >&5
 $as_echo_n "checking for main in -lreadline... " >&6; }
 if ${ac_cv_lib_readline_main+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   ac_check_lib_save_LIBS=$LIBS
-LIBS="-lreadline -lncurses $LIBS"
+LIBS="-lreadline  $LIBS"
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -6324,7 +6595,7 @@ if test "x$ac_cv_lib_readline_main" = xyes; then :
 
 $as_echo "#define HAVE_LIBREADLINE 1" >>confdefs.h
 
-		LIBS="$LIBS -lreadline -lncurses"
+		LIBS="$LIBS -lreadline"
 
 else
   if test "x$with_readline" != xcheck; then
@@ -6634,29 +6905,45 @@ fi
 
 if test "$yap_cv_cudd" != no; then
    	    oldlibs="$LIBS"
-	    if test "$withval" != "yes"; then
-	       if test -d "$yap_cv_cudd"/include/cudd; then
-	         CUDD_CPPFLAGS="-I $yap_cv_cudd/include/cudd"
-               else
-	         CUDD_CPPFLAGS="-I $yap_cv_cudd/include"
-               fi
+	    if test "$yap_cv_cudd" != "NONE"; then
+	       CUDD_CPPFLAGS="-I $yap_cv_cudd/include"
 	       cudd_dir="$yap_cv_cudd"
-	    elif test -e /usr/include/cudd; then
-	       CUDD_CPPFLAGS="-I /usr/include/cudd"
-	       cudd_dir="$withval"
 	    elif test "$prefix" != "NONE"; then
-	       if test -d "$prefix"/include/cudd; then
-	         CUDD_CPPFLAGS="-I $prefix/include/cudd"
-               else
-	         CUDD_CPPFLAGS="-I $prefix/include"
-	       fi
+	       CUDD_CPPFLAGS="-I $prefix/include"
 	       cudd_dir="$prefix"
 	    else
-	       if test -d /usr/local/include/cudd; then
-	         CUDD_CPPFLAGS="-I /usr/local/include/cudd"
-               fi
+	       CUDD_CPPFLAGS="-I /usr/local/include"
 	       cudd_dir=/usr/local
 	    fi
+	    OLD_CFLAGS="$CPPFLAGS"
+	    CPPFLAGS="$CPPFLAGS $CUDD_CPPFLAGS"
+	    CPPFLAGS="$OLD_CFLAGS"
+	    for ac_header in util.h cudd/util.h cudd.h cudd/cudd.h
+do :
+  as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
+ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
+if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
+  cat >>confdefs.h <<_ACEOF
+#define `$as_echo "HAVE_$ac_header" | $as_tr_cpp` 1
+_ACEOF
+
+fi
+
+done
+
+	    for ac_header in cuddInt.h cudd/cuddInt.h
+do :
+  as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
+ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
+if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
+  cat >>confdefs.h <<_ACEOF
+#define `$as_echo "HAVE_$ac_header" | $as_tr_cpp` 1
+_ACEOF
+
+fi
+
+done
+
             	    if test -d "$cudd_dir/lib64/cudd" -a "$YAP_TARGET" = amd64; then
 	      LIBS="$LIBS -L $cudd_dir/lib64/cudd"
 	    elif test -d "$cudd_dir/lib64" -a "$YAP_TARGET" = amd64; then
@@ -7153,6 +7440,7 @@ if test "$yap_cv_java" = no; then
 	ENABLE_JPL="@#"
 elif test -e "$srcdir"/packages/jpl/Makefile.in; then
 	ENABLE_JPL=""
+	LIBJPL=libjpl
 	JAVA=java
 	JAVA_HOME="$yap_cv_java"
 	case "$target_os" in
@@ -7187,10 +7475,10 @@ elif test -e "$srcdir"/packages/jpl/Makefile.in; then
           JAVAC=javac
           JAVADOC=javadoc
         else
-	  JAVA="$yap_cv_java"/bin/java
-	  JAR="$yap_cv_java"/bin/jar
-	  JAVAC="$yap_cv_java"/bin/javac
-	  JAVADOC="$yap_cv_java"/bin/javadoc
+	  JAVA=$yap_cv_java/bin/java
+	  JAR=$yap_cv_java/bin/jar
+	  JAVAC=$yap_cv_java/bin/javac
+	  JAVADOC=$yap_cv_java/bin/javadoc
         fi
 else
       ENABLE_JPL="@#"
@@ -8735,21 +9023,6 @@ fi
 done
 
 fi
-if test "$yap_cv_cudd" != "no"
-then
-  for ac_header in cudd.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "cudd.h" "ac_cv_header_cudd_h" "$ac_includes_default"
-if test "x$ac_cv_header_cudd_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_CUDD_H 1
-_ACEOF
-
-fi
-
-done
-
-fi
 if test "$yap_cv_myddas" != "no"
 then
   for ac_header in mysql/mysql.h
@@ -9279,6 +9552,7 @@ fi
 
 
 
+
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for gcc threaded code" >&5
 $as_echo_n "checking for gcc threaded code... " >&6; }
 if ${yap_cv_threaded_code+:} false; then :
@@ -9668,7 +9942,7 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
-for ac_func in _NSGetEnviron access acosh
+for ac_func in _NSGetEnviron _chsize_s access acosh
 do :
   as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
 ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
@@ -10519,8 +10793,7 @@ mkdir -p  packages/clib/maildrop/rfc822
 mkdir -p  packages/clib/maildrop/rfc2045
 mkdir -p  packages/CLPBN
 mkdir -p  packages/CLPBN/clpbn
-mkdir -p  packages/CLPBN/clpbn/bp
-mkdir -p  packages/CLPBN/clpbn/bp/xmlParser
+mkdir -p  packages/CLPBN/horus
 mkdir -p  packages/clpqr
 mkdir -p  packages/cplint
 mkdir -p  packages/cplint/approx
@@ -10539,6 +10812,7 @@ mkdir -p  packages/meld
 mkdir -p  packages/PLStream
 mkdir -p  packages/PLStream/libtai
 mkdir -p  packages/pldoc
+mkdir -p  packages/pldoc/server
 mkdir -p  packages/plunit
 mkdir -p  packages/prism
 mkdir -p  packages/prism/src
@@ -10641,6 +10915,8 @@ fi
 if test "$ENABLE_PLDOC" = ""; then
 ac_config_files="$ac_config_files packages/pldoc/Makefile"
 
+ac_config_files="$ac_config_files packages/pldoc/server/man_server.pl"
+
 fi
 
 if test "$ENABLE_PLUNIT" = ""; then
@@ -10673,6 +10949,7 @@ ac_config_files="$ac_config_files packages/zlib/Makefile"
 
 fi
 
+
 if test "$ENABLE_CUDD" = ""; then
 ac_config_files="$ac_config_files packages/bdd/Makefile"
 
@@ -10695,7 +10972,7 @@ ac_config_files="$ac_config_files packages/real/Makefile"
 fi
 
 if test "$ENABLE_CLPBN_BP" = ""; then
-ac_config_files="$ac_config_files packages/CLPBN/clpbn/bp/Makefile"
+ac_config_files="$ac_config_files packages/CLPBN/horus/Makefile"
 
 fi
 
@@ -11452,6 +11729,7 @@ do
     "packages/jpl/src/java/Makefile") CONFIG_FILES="$CONFIG_FILES packages/jpl/src/java/Makefile" ;;
     "packages/pyswip/Makefile") CONFIG_FILES="$CONFIG_FILES packages/pyswip/Makefile" ;;
     "packages/pldoc/Makefile") CONFIG_FILES="$CONFIG_FILES packages/pldoc/Makefile" ;;
+    "packages/pldoc/server/man_server.pl") CONFIG_FILES="$CONFIG_FILES packages/pldoc/server/man_server.pl" ;;
     "packages/plunit/Makefile") CONFIG_FILES="$CONFIG_FILES packages/plunit/Makefile" ;;
     "packages/R/Makefile") CONFIG_FILES="$CONFIG_FILES packages/R/Makefile" ;;
     "packages/RDF/Makefile") CONFIG_FILES="$CONFIG_FILES packages/RDF/Makefile" ;;
@@ -11464,7 +11742,7 @@ do
     "packages/swi-minisat2/Makefile") CONFIG_FILES="$CONFIG_FILES packages/swi-minisat2/Makefile" ;;
     "packages/swi-minisat2/C/Makefile") CONFIG_FILES="$CONFIG_FILES packages/swi-minisat2/C/Makefile" ;;
     "packages/real/Makefile") CONFIG_FILES="$CONFIG_FILES packages/real/Makefile" ;;
-    "packages/CLPBN/clpbn/bp/Makefile") CONFIG_FILES="$CONFIG_FILES packages/CLPBN/clpbn/bp/Makefile" ;;
+    "packages/CLPBN/horus/Makefile") CONFIG_FILES="$CONFIG_FILES packages/CLPBN/horus/Makefile" ;;
     "library/gecode/Makefile") CONFIG_FILES="$CONFIG_FILES library/gecode/Makefile" ;;
     "packages/prism/src/c/Makefile") CONFIG_FILES="$CONFIG_FILES packages/prism/src/c/Makefile" ;;
     "packages/prism/src/prolog/Makefile") CONFIG_FILES="$CONFIG_FILES packages/prism/src/prolog/Makefile" ;;

@@ -125,6 +125,7 @@ INTERFACE_HEADERS = \
 	$(srcdir)/include/YapRegs.h \
 	$(srcdir)/H/YapTerm.h \
 	$(srcdir)/library/dialect/bprolog/fli/bprolog.h \
+	$(srcdir)/os/pl-thread.h \
 	$(srcdir)/os/SWI-Stream.h
 
 IOLIB_HEADERS=$(srcdir)/os/pl-buffer.h \
@@ -171,9 +172,10 @@ HEADERS = \
 	$(srcdir)/H/hlocals.h \
 	$(srcdir)/H/hstruct.h \
 	$(srcdir)/H/iglobals.h \
-	$(srcdir)/H/ilocals.h \
 	$(srcdir)/H/ihstruct.h \
+	$(srcdir)/H/ilocals.h \
 	$(srcdir)/H/index.h \
+	$(srcdir)/H/inline-only.h \
 	$(srcdir)/H/iopreds.h \
 	$(srcdir)/H/iswiatoms.h \
 	$(srcdir)/H/qly.h \
@@ -258,6 +260,7 @@ C_SOURCES= \
 	$(srcdir)/C/threads.c \
 	$(srcdir)/C/tracer.c $(srcdir)/C/unify.c $(srcdir)/C/userpreds.c  \
 	$(srcdir)/C/utilpreds.c $(srcdir)/C/write.c $(srcdir)/console/yap.c \
+	$(srcdir)/C/yap-args.c \
 	$(srcdir)/C/ypstdio.c \
 	$(srcdir)/BEAM/eam_am.c $(srcdir)/BEAM/eam_showcode.c \
 	$(srcdir)/BEAM/eamindex.c $(srcdir)/BEAM/eamamasm.c \
@@ -374,7 +377,7 @@ ENGINE_OBJECTS = \
 	sysbits.o threads.o tracer.o \
 	udi.o mdalloc.o rtree.o rtree_udi.o udi_indexers.o gmpis.o \
 	unify.o userpreds.o utilpreds.o \
-	write.o \
+	yap-args.o write.o \
 	blobs.o swi.o ypstdio.o $(IOLIB_OBJECTS)  @MPI_OBJS@
 
 LIBTAI_OBJECTS = \
@@ -413,7 +416,7 @@ PLCONS_OBJECTS = \
 	pl-ntconsole.o \
 	pl-ntmain.o
 
-all: parms.h startup.yss @ENABLE_WINCONSOLE@ pl-yap@EXEC_SUFFIX@
+all: parms.h startup.yss @ENABLE_WINCONSOLE@ yap-win@EXEC_SUFFIX@
 
 Makefile: $(srcdir)/Makefile.in
 
@@ -448,6 +451,9 @@ parms.h:	Makefile
 # interface with the outside world.
 c_interface.o: $(srcdir)/C/c_interface.c $(srcdir)/include/c_interface.h config.h
 	$(CC) $(C_INTERF_FLAGS) -c $(srcdir)/C/c_interface.c -o c_interface.o
+
+yap-argss.o: $(srcdir)/C/yap-args.c $(srcdir)/include/c_interface.h config.h
+	$(CC) $(C_INTERF_FLAGS) -c $(srcdir)/C/yap-args.c -o yap-args.o
 
 clause_list.o: $(srcdir)/C/clause_list.c $(srcdir)/include/clause_list.h config.h
 	$(CC) $(C_INTERF_FLAGS) -c $(srcdir)/C/clause_list.c -o clause_list.o
@@ -603,7 +609,7 @@ pl-nt.o: $(srcdir)/os/pl-nt.c config.h
 	$(CC) -c $(CFLAGS) -I$(srcdir)/include -I$(srcdir)/os @EXTRA_INCLUDES_FOR_WIN32@ $(srcdir)/os/pl-nt.c -o $@
 
 pl-ntcon.o: $(srcdir)/console/LGPL/pl-ntcon.c config.h
-	$(CC) -municode -DUNICODE -D_UNICODE -c $(CFLAGS) -DPL_CONSOLE=1 -I$(srcdir)/include $(srcdir)/console/LGPL/pl-ntcon.c -o $@
+	$(CC) -c $(CFLAGS) -DPL_CONSOLE=1 -I$(srcdir)/include $(srcdir)/console/LGPL/pl-ntcon.c -o $@
 
 pl-ntconsole.o: $(srcdir)/console/LGPL/pl-ntconsole.c config.h
 	$(CC) -municode -DUNICODE -D_UNICODE -c $(CFLAGS) -DPL_CONSOLE=1  -I$(srcdir) -I$(srcdir)/include -I$(srcdir)/os @EXTRA_INCLUDES_FOR_WIN32@ $(srcdir)/console/LGPL/pl-ntconsole.c -o $@
@@ -728,7 +734,7 @@ all: startup.yss
 	@ENABLE_SEMWEB@ @INSTALL_DLLS@ (cd packages/semweb; $(MAKE))
 	@ENABLE_SGML@ @INSTALL_DLLS@ (cd packages/sgml; $(MAKE))
 	@ENABLE_REAL@ (cd packages/real; $(MAKE))
-	@ENABLE_CLPBN_BP@ (cd packages/CLPBN/clpbn/bp ; $(MAKE))
+	@ENABLE_CLPBN_BP@ (cd packages/CLPBN/horus; $(MAKE))
 	@ENABLE_MINISAT@ (cd packages/swi-minisat2/C; $(MAKE))
 	@ENABLE_ZLIB@ @INSTALL_DLLS@ (cd packages/zlib; $(MAKE))
 	@ENABLE_CPLINT@ (cd packages/cplint/approx/simplecuddLPADs; $(MAKE))
@@ -747,13 +753,13 @@ startup.yss: yap@EXEC_SUFFIX@ $(PL_SOURCES)
 yap@EXEC_SUFFIX@: $(HEADERS) yap.o @YAPLIB@
 	$(MPI_CC) $(EXECUTABLE_CFLAGS) $(LDFLAGS) -o yap yap.o @YAPLIB@ $(LIBS) @MPI_LIBS@
 
-plyap: pl-yap@EXEC_SUFFIX@
+yap-win: yap-win@EXEC_SUFFIX@
 
-pl-yap: pl-yap@EXEC_SUFFIX@
+yapwin: yap-win@EXEC_SUFFIX@
 
-pl-yap@EXEC_SUFFIX@: $(PLCONS_OBJECTS) $(HEADERS) @YAPLIB@
+yap-win@EXEC_SUFFIX@: $(PLCONS_OBJECTS) $(HEADERS) @YAPLIB@
 	(cd LGPL/swi_console; $(MAKE))
-	$(MPI_CC) -municode -DUNICODE -D_UNICODE $(EXECUTABLE_CFLAGS) $(LDFLAGS) -Wl,-subsystem,windows -o pl-yap $(PLCONS_OBJECTS) plterm.dll @YAPLIB@ $(LIBS) @MPI_LIBS@
+	$(MPI_CC) -municode -DUNICODE -D_UNICODE $(EXECUTABLE_CFLAGS) $(LDFLAGS) -Wl,-subsystem,windows -o yap-win $(PLCONS_OBJECTS) plterm.dll @YAPLIB@ $(LIBS) @MPI_LIBS@
 
 libYap.a: $(LIB_OBJECTS) 
 	-rm -f libYap.a
@@ -790,14 +796,18 @@ install_unix: startup.yss libYap.a
 	@ENABLE_GECODE@ @INSTALL_DLLS@ (cd library/gecode; $(MAKE) install)
 	@ENABLE_CLIB@ @INSTALL_DLLS@ (cd packages/clib; $(MAKE) install)
 	@ENABLE_HTTP@ @INSTALL_DLLS@ (cd packages/http; $(MAKE) install)
+	@ENABLE_HTTP@ @INSTALL_DLLS@ (cd packages/http; $(MAKE) install-examples)
 	@ENABLE_PLDOC@ @INSTALL_DLLS@ (cd packages/pldoc; $(MAKE) install)
+	@ENABLE_PLDOC@ @INSTALL_DLLS@ (cd packages/pldoc; $(MAKE) install-examples)
 	@ENABLE_PLUNIT@ @INSTALL_DLLS@ (cd packages/plunit; $(MAKE) install)
+	@ENABLE_PLUNIT@ @INSTALL_DLLS@ (cd packages/plunit; $(MAKE) install-examples)
 	@ENABLE_R@ @INSTALL_DLLS@ (cd packages/R; $(MAKE) install)
+	@ENABLE_R@ @INSTALL_DLLS@ (cd packages/R; $(MAKE) install-examples)
 	@ENABLE_RDF@ @INSTALL_DLLS@ (cd packages/RDF; $(MAKE) install)
 	@ENABLE_SEMWEB@ @INSTALL_DLLS@ (cd packages/semweb; $(MAKE) install)
 	@ENABLE_SGML@ @INSTALL_DLLS@ (cd packages/sgml; $(MAKE) install)
 	@ENABLE_ZLIB@ @INSTALL_DLLS@ (cd packages/zlib; $(MAKE) @ZLIB_INSTALL@)
-	@ENABLE_CLPBN_BP@ @INSTALL_DLLS@ (cd packages/CLPBN/clpbn/bp ; $(MAKE) install)
+	@ENABLE_CLPBN_BP@ @INSTALL_DLLS@ (cd packages/CLPBN/horus; $(MAKE) install)
 	@ENABLE_MINISAT@ (cd packages/swi-minisat2/C; $(MAKE) install)
 	@INSTALL_MATLAB@ (cd library/matlab; $(MAKE) install)
 	@ENABLE_REAL@ (cd packages/real; $(MAKE) install)
@@ -819,14 +829,14 @@ install_unix: startup.yss libYap.a
 	@ENABLE_CUDD@ (cd packages/ProbLog/simplecudd_lfi; $(MAKE) install)
 
 
-install_win32: startup.yss @ENABLE_WINCONSOLE@ pl-yap@EXEC_SUFFIX@
+install_win32: startup.yss @ENABLE_WINCONSOLE@ yap-win@EXEC_SUFFIX@
 	mkdir -p $(DESTDIR)$(BINDIR)
 	mkdir -p $(DESTDIR)$(LIBDIR)
 	mkdir -p $(DESTDIR)$(YAPLIBDIR)
 	mkdir -p $(DESTDIR)$(INCLUDEDIR)
 	$(INSTALL_PROGRAM) -m 755 yap.exe $(DESTDIR)$(BINDIR)/yap.exe
 	$(INSTALL_PROGRAM) -m 755 yap.dll $(DESTDIR)$(BINDIR)/yap.dll
-	@ENABLE_WINCONSOLE@ $(INSTALL_PROGRAM) -m 755 pl-yap.exe $(DESTDIR)$(BINDIR)/pl-yap.exe
+	@ENABLE_WINCONSOLE@ $(INSTALL_PROGRAM) -m 755 yap-win.exe $(DESTDIR)$(BINDIR)/yap-win.exe
 	@ENABLE_WINCONSOLE@ $(INSTALL_PROGRAM) -m 755 plterm.dll $(DESTDIR)$(BINDIR)/plterm.dll
 	$(INSTALL_PROGRAM) -m 755 @YAPLIB@ $(DESTDIR)$(YAPLIBDIR)/@YAPLIB@
 	$(INSTALL_PROGRAM) -m 755 startup.yss $(DESTDIR)$(YAPLIBDIR)/startup.yss
@@ -853,15 +863,19 @@ install_win32: startup.yss @ENABLE_WINCONSOLE@ pl-yap@EXEC_SUFFIX@
 	(cd library/tries; $(MAKE) install)
 	@ENABLE_CLIB@ (cd packages/clib; $(MAKE) install)
 	@ENABLE_PLDOC@ (cd packages/pldoc; $(MAKE) install)
+	@ENABLE_PLDOC@ (cd packages/pldoc; $(MAKE) install-examples)
 	@ENABLE_PLUNIT@ (cd packages/plunit; $(MAKE) install)
+	@ENABLE_PLUNIT@ (cd packages/plunit; $(MAKE) install-examples)
 	@ENABLE_HTTP@ (cd packages/http; $(MAKE) install)
+	@ENABLE_HTTP@ (cd packages/http; $(MAKE) install-examples)
 	@ENABLE_R@ (cd packages/R; $(MAKE) install)
+	@ENABLE_R@ (cd packages/R; $(MAKE) install-examples)
 	@ENABLE_RDF@ (cd packages/RDF; $(MAKE) install)
 	@ENABLE_SEMWEB@ (cd packages/semweb; $(MAKE) install)
 	@ENABLE_SGML@ (cd packages/sgml; $(MAKE) install)
 	@ENABLE_ZLIB@ (cd packages/zlib; $(MAKE) @ZLIB_INSTALL@)
 	(cd packages/CLPBN ; $(MAKE) install)
-	@ENABLE_CLPBN_BP@ (cd packages/CLPBN/clpbn/bp ; $(MAKE) install)
+	@ENABLE_CLPBN_BP@ (cd packages/CLPBN/horus; $(MAKE) install)
 	@ENABLE_JPL@ (cd packages/jpl ; $(MAKE) install)
 	@ENABLE_MINISAT@ (cd packages/swi-minisat2/C; $(MAKE) install)
 	@ENABLE_CPLINT@ (cd packages/cplint; $(MAKE) install)
@@ -877,6 +891,7 @@ install_library: @YAPLIB@
 
 install_data: install_copied_files install_bin
 	@ENABLE_CHR@ (cd packages/chr ; $(MAKE) install)
+	@ENABLE_CHR@ (cd packages/chr ; $(MAKE) install-examples)
 	@ENABLE_CHR@ (cd packages/clpqr ; $(MAKE) install)
 
 install_copied_files:
@@ -926,7 +941,7 @@ clean: clean_docs
 	@ENABLE_SGML@ @INSTALL_DLLS@ (cd packages/sgml; $(MAKE) clean)
 	@ENABLE_REAL@ (cd packages/real; $(MAKE) clean)
 	@ENABLE_MINISAT@ (cd packages/swi-minisat2; $(MAKE) clean)
-	@ENABLE_CLPBN_BP@ (cd packages/CLPBN/clpbn/bp; $(MAKE) clean)
+	@ENABLE_CLPBN_BP@ (cd packages/CLPBN/horus; $(MAKE) clean)
 	@ENABLE_ZLIB@ @INSTALL_DLLS@ (cd packages/zlib; $(MAKE) clean)
 	@ENABLE_PRISM@ (cd packages/prism/src/c; $(MAKE) clean)
 	@ENABLE_PRISM@ (cd packages/prism/src/prolog; $(MAKE) clean)

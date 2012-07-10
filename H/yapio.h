@@ -230,10 +230,11 @@ typedef struct AliasDescS {
 #define NUMBER_OF_CHARS 256
 extern char *Yap_chtype;
 
-EXTERN inline int STD_PROTO(chtype,(Int));
+#include "inline-only.h"
+INLINE_ONLY EXTERN inline int STD_PROTO(chtype,(Int));
 int STD_PROTO(Yap_wide_chtype,(Int));
 
-EXTERN inline int
+INLINE_ONLY EXTERN inline int
 chtype(Int ch)
 {
   if (ch < NUMBER_OF_CHARS)
@@ -323,10 +324,10 @@ int  STD_PROTO(Yap_growtrail_in_parser,  (tr_fr_ptr *, TokEntry **, VarEntry **)
 extern int errno;
 #endif
 
-EXTERN inline UInt STD_PROTO(HashFunction, (unsigned char *));
-EXTERN inline UInt STD_PROTO(WideHashFunction, (wchar_t *));
+INLINE_ONLY EXTERN inline UInt STD_PROTO(HashFunction, (unsigned char *));
+INLINE_ONLY EXTERN inline UInt STD_PROTO(WideHashFunction, (wchar_t *));
 
-EXTERN inline UInt
+INLINE_ONLY EXTERN inline UInt
 HashFunction(unsigned char *CHP)
 {
   /* djb2 */
@@ -345,7 +346,7 @@ HashFunction(unsigned char *CHP)
   */
 }
 
-EXTERN inline UInt
+INLINE_ONLY EXTERN inline UInt
 WideHashFunction(wchar_t *CHP)
 {
   UInt hash = 5381;

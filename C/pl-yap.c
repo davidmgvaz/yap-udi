@@ -22,6 +22,9 @@
 #include <limits.h>
 #endif
 
+#define LOCK()   PL_LOCK(L_PLFLAG)
+#define UNLOCK() PL_UNLOCK(L_PLFLAG)
+
 int fileerrors;
 
 PL_local_data_t lds;
@@ -549,8 +552,11 @@ X_API int PL_handle_signals(void)
   GET_LD
   if ( !LD || LD->critical || !LD->signal.pending )
     return 0;
-  fprintf(stderr,"PL_handle_signals not implemented\n");
-  return 0;
+  if (LD->signal.pending == 2) {
+    Yap_Error(PURE_ABORT, TermNil, "abort from console");
+  }
+  //  fprintf(stderr,"PL_handle_signals not implemented\n");
+  return 1;
 }
 
 void
@@ -572,12 +578,10 @@ int
 currentOperator(Module m, atom_t name, int kind, int *type, int *priority)
 {
   YAP_Term mod = (YAP_Term)m;
-  YAP_Atom at;
   int opkind, yap_type;
 
   if (!m) 
     mod = YAP_CurrentModule();
-  at = YAP_AtomFromSWIAtom(name);
   switch (kind) {
   case OP_PREFIX:
     opkind = 2;
@@ -1019,7 +1023,7 @@ PL_w32thread_raise(DWORD id, int sig)
   { PL_thread_info_t *info = GD->thread.threads[i];
 
     if ( info && info->w32id == id && info->thread_data )
-    { raiseSignal(info->thread_data, sig);
+      { Yap_signal(sig); //raiseSignal(info->thread_data, sig);
       if ( info->w32id )
 	PostThreadMessage(info->w32id, WM_SIGNALLED, 0, 0L);
       UNLOCK();
@@ -1046,12 +1050,14 @@ PL_w32thread_raise(DWORD id, int sig)
 X_API int
 PL_raise(int sig)
 {
-  if (sig == SIG_PLABORT) {
+  if (sig < SIG_PROLOG_OFFSET) {
+    Yap_signal(YAP_INT_SIGNAL);
+    return 1;
+  } else if (sig == SIG_PLABORT) {
     YAP_signal(0x40); /* YAP_INT_SIGNAL */
     return 1;
-  } else {
-    return 0;
   }
+  return 0;
 }
 
 extern size_t PL_utf8_strlen(const char *s, size_t len);

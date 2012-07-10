@@ -217,7 +217,7 @@ Yap_InitSysPath(void) {
 	return;
       }
       buflen = strlen(LOCAL_FileNameBuf);
-      pt = LOCAL_FileNameBuf+strlen(LOCAL_FileNameBuf);
+      pt = LOCAL_FileNameBuf+buflen;
       while (*--pt != '\\') {
 	/* skip executable */
 	if (pt == LOCAL_FileNameBuf) {
@@ -471,7 +471,7 @@ sub_utime(FILETIME t1, FILETIME t2)
 #endif
 
 UInt
-Yap_cputime ( USES_REGS1 )
+Yap_cputime ( void )
 {
   HANDLE hProcess = GetCurrentProcess();
   FILETIME CreationTime, ExitTime, KernelTime, UserTime;
@@ -1775,6 +1775,7 @@ ReceiveSignal (int s)
 #if (_MSC_VER || defined(__MINGW32__))
 static BOOL WINAPI
 MSCHandleSignal(DWORD dwCtrlType) {
+  CACHE_REGS
   if (LOCAL_InterruptsDisabled) {
     return FALSE;
   }
@@ -3185,9 +3186,15 @@ Yap_RegistryGetString(char *name)
   char *ptr;
   int i;
 
+#if SIZEOF_INT_P == 8
+  if ( !(key=reg_open_key(L"HKEY_LOCAL_MACHINE/SOFTWARE/YAP/Prolog64", FALSE)) ) {
+    return NULL;
+  }
+#else
   if ( !(key=reg_open_key(L"HKEY_LOCAL_MACHINE/SOFTWARE/YAP/Prolog", FALSE)) ) {
     return NULL;
   }
+#endif
   if ( RegQueryValueEx(key, name, NULL, &type, data, &len) == ERROR_SUCCESS ) {
     RegCloseKey(key);
     switch(type) {

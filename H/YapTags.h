@@ -17,6 +17,8 @@
 #define EXTERN extern
 #endif
 
+#include "inline-only.h"
+
 #ifndef SHORT_ADDRESSES
 #	define LONG_ADDRESSES	1
 #else
@@ -152,9 +154,9 @@
                                    applies to unbound variables
 *************************************************************************************************/
 
-inline EXTERN Term *VarOfTerm (Term t);
+INLINE_ONLY inline EXTERN Term *VarOfTerm (Term t);
 
-inline EXTERN Term *
+INLINE_ONLY inline EXTERN Term *
 VarOfTerm (Term t)
 {
   return (Term *) (t);
@@ -163,9 +165,9 @@ VarOfTerm (Term t)
 
 #ifdef YAPOR_SBA
 
-inline EXTERN Term MkVarTerm__ ( USES_REGS1 );
+INLINE_ONLY inline EXTERN Term MkVarTerm__ ( USES_REGS1 );
 
-inline EXTERN Term
+INLINE_ONLY inline EXTERN Term
 MkVarTerm__ ( USES_REGS1 )
 {
   return (Term) ((*H = 0, H++));
@@ -173,9 +175,9 @@ MkVarTerm__ ( USES_REGS1 )
 
 
 
-inline EXTERN int IsUnboundVar (Term *);
+INLINE_ONLY inline EXTERN int IsUnboundVar (Term *);
 
-inline EXTERN int
+INLINE_ONLY inline EXTERN int
 IsUnboundVar (Term * t)
 {
   return (int) (*(t) == 0);
@@ -184,18 +186,18 @@ IsUnboundVar (Term * t)
 
 #else
 
-inline EXTERN Term MkVarTerm__ ( USES_REGS1 );
+INLINE_ONLY inline EXTERN Term MkVarTerm__ ( USES_REGS1 );
 
-inline EXTERN Term
+INLINE_ONLY inline EXTERN Term
 MkVarTerm__ ( USES_REGS1 )
 {
   return (Term) ((*H = (CELL) H, H++));
 }
 
 
-inline EXTERN int IsUnboundVar (Term *);
+INLINE_ONLY inline EXTERN int IsUnboundVar (Term *);
 
-inline EXTERN int
+INLINE_ONLY inline EXTERN int
 IsUnboundVar (Term * t)
 {
   return (int) (*(t) == (Term) (t));
@@ -204,9 +206,9 @@ IsUnboundVar (Term * t)
 
 #endif
 
-inline EXTERN CELL *PtrOfTerm (Term);
+INLINE_ONLY inline EXTERN CELL *PtrOfTerm (Term);
 
-inline EXTERN CELL *
+INLINE_ONLY inline EXTERN CELL *
 PtrOfTerm (Term t)
 {
   return (CELL *) (*(CELL *) (t));
@@ -215,9 +217,9 @@ PtrOfTerm (Term t)
 
 
 
-inline EXTERN Functor FunctorOfTerm (Term);
+INLINE_ONLY inline EXTERN Functor FunctorOfTerm (Term);
 
-inline EXTERN Functor
+INLINE_ONLY inline EXTERN Functor
 FunctorOfTerm (Term t)
 {
   return (Functor) (*RepAppl (t));
@@ -226,9 +228,9 @@ FunctorOfTerm (Term t)
 
 #if USE_LOW32_TAGS
 
-inline EXTERN Term MkAtomTerm (Atom);
+INLINE_ONLY inline EXTERN Term MkAtomTerm (Atom);
 
-inline EXTERN Term
+INLINE_ONLY inline EXTERN Term
 MkAtomTerm (Atom a)
 {
   return (Term) (AtomTag | (CELL) (a));
@@ -236,9 +238,9 @@ MkAtomTerm (Atom a)
 
 
 
-inline EXTERN Atom AtomOfTerm (Term t);
+INLINE_ONLY inline EXTERN Atom AtomOfTerm (Term t);
 
-inline EXTERN Atom
+INLINE_ONLY inline EXTERN Atom
 AtomOfTerm (Term t)
 {
   return (Atom) ((~AtomTag & (CELL) (t)));
@@ -247,9 +249,9 @@ AtomOfTerm (Term t)
 
 #else
 
-inline EXTERN Term MkAtomTerm (Atom);
+INLINE_ONLY inline EXTERN Term MkAtomTerm (Atom);
 
-inline EXTERN Term
+INLINE_ONLY inline EXTERN Term
 MkAtomTerm (Atom a)
 {
   return (Term) (TAGGEDA ((CELL)AtomTag, (CELL) (a)));
@@ -257,9 +259,9 @@ MkAtomTerm (Atom a)
 
 
 
-inline EXTERN Atom AtomOfTerm (Term t);
+INLINE_ONLY inline EXTERN Atom AtomOfTerm (Term t);
 
-inline EXTERN Atom
+INLINE_ONLY inline EXTERN Atom
 AtomOfTerm (Term t)
 {
   return (Atom) (NonTagPart (t));
@@ -268,9 +270,9 @@ AtomOfTerm (Term t)
 
 #endif
 
-inline EXTERN int IsAtomTerm (Term);
+INLINE_ONLY inline EXTERN int IsAtomTerm (Term);
 
-inline EXTERN int
+INLINE_ONLY inline EXTERN int
 IsAtomTerm (Term t)
 {
   return (int) (CHKTAG ((t), AtomTag));
@@ -279,9 +281,9 @@ IsAtomTerm (Term t)
 
 
 
-inline EXTERN Term MkIntTerm (Int);
+INLINE_ONLY inline EXTERN Term MkIntTerm (Int);
 
-inline EXTERN Term
+INLINE_ONLY inline EXTERN Term
 MkIntTerm (Int n)
 {
   return (Term) (TAGGED (NumberTag, (n)));
@@ -293,9 +295,9 @@ MkIntTerm (Int n)
   overflow problems are possible
 */
 
-inline EXTERN Term MkIntConstant (Int);
+INLINE_ONLY inline EXTERN Term MkIntConstant (Int);
 
-inline EXTERN Term
+INLINE_ONLY inline EXTERN Term
 MkIntConstant (Int n)
 {
   return (Term) (NONTAGGED (NumberTag, (n)));
@@ -303,18 +305,18 @@ MkIntConstant (Int n)
 
 
 
-inline EXTERN int IsIntTerm (Term);
+INLINE_ONLY inline EXTERN int IsIntTerm (Term);
 
-inline EXTERN int
+INLINE_ONLY inline EXTERN int
 IsIntTerm (Term t)
 {
   return (int) (CHKTAG ((t), NumberTag));
 }
 
 
-EXTERN inline Term MkPairTerm__(Term head, Term  tail USES_REGS );
+INLINE_ONLY EXTERN inline Term MkPairTerm__(Term head, Term  tail USES_REGS );
 
-EXTERN inline Term
+INLINE_ONLY EXTERN inline Term
 MkPairTerm__ (Term head, Term tail USES_REGS)
 {
   register CELL *p = H;
@@ -362,9 +364,9 @@ MkPairTerm__ (Term head, Term tail USES_REGS)
 #define IsAccessFunc(func)		((func) == FunctorAccess)
 
 #ifdef YAP_H
-inline EXTERN Term MkIntegerTerm (Int);
+INLINE_ONLY inline EXTERN Term MkIntegerTerm (Int);
 
-inline EXTERN Term
+INLINE_ONLY inline EXTERN Term
 MkIntegerTerm (Int n)
 {
   return (Term) (IntInBnd (n) ? MkIntTerm (n) : MkLongIntTerm (n));
@@ -372,17 +374,17 @@ MkIntegerTerm (Int n)
 #endif
 
 
-inline EXTERN int IsIntegerTerm (Term);
+INLINE_ONLY inline EXTERN int IsIntegerTerm (Term);
 
-inline EXTERN int
+INLINE_ONLY inline EXTERN int
 IsIntegerTerm (Term t)
 {
   return (int) (IsIntTerm (t) || IsLongIntTerm (t));
 }
 
-inline EXTERN Int IntegerOfTerm (Term);
+INLINE_ONLY inline EXTERN Int IntegerOfTerm (Term);
 
-inline EXTERN Int
+INLINE_ONLY inline EXTERN Int
 IntegerOfTerm (Term t)
 {
 

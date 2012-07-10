@@ -151,6 +151,13 @@ Yap_udi_search(PredEntry *p)
   return UdiSearch(info->cb);
 }
 
+/* index, called from absmi.c */
+void
+Yap_udi_abolish(PredEntry *p)
+{
+  /* tell the predicate destroy */
+}
+
 void
 Yap_udi_init(void)
 {
