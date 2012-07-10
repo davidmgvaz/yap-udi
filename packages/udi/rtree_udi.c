@@ -1,34 +1,29 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <assert.h>
-
-#include <YapInterface.h>
 
 #include "Yap.h"
 
 #include "udi.h"
 
 #include "rtree.h"
-#include "clause_list.h"
-#include "rtree_udi_i.h"
 #include "rtree_udi.h"
 
-/* integer set */
-#include "gmpis.h"
+/* Used only becouse of:
+ * YAP_IsAttVar(t) and YAP_AttsOfVar(t)
+ */
+#include "YapInterface.h"
 
-static int YAP_IsNumberTermToFloat (Term term, YAP_Float *n)
+static int IsNumberTermToFloat (Term term, Float *n)
 {
-  if (YAP_IsIntTerm (term) != FALSE)
+  if (IsIntTerm (term) != FALSE)
   {
     if (n != NULL)
-      *n = (YAP_Float) YAP_IntOfTerm (term);
+      *n = (Float) IntOfTerm (term);
     return (TRUE);
   }
-  if (YAP_IsFloatTerm (term) != FALSE)
+  if (IsFloatTerm (term) != FALSE)
   {
     if (n != NULL)
-      *n = YAP_FloatOfTerm (term);
+      *n = FloatOfTerm (term);
     return (TRUE);
   }
   return (FALSE);
@@ -36,19 +31,19 @@ static int YAP_IsNumberTermToFloat (Term term, YAP_Float *n)
 
 static rect_t RectOfTerm (Term term)
 {
-  YAP_Term tmp;
+  Term tmp;
   rect_t rect;
   int i;
 
-  if (!YAP_IsPairTerm(term))
+  if (!IsPairTerm(term))
     return (RectInit());
 
-  for (i = 0; YAP_IsPairTerm(term) && i < 4; i++)
+  for (i = 0; IsPairTerm(term) && i < 4; i++)
     {
-      tmp = YAP_HeadOfTerm (term);
-      if (!YAP_IsNumberTermToFloat(tmp,&(rect.coords[i])))
+      tmp = HeadOfTerm (term);
+      if (!IsNumberTermToFloat(tmp,&(rect.coords[i])))
         return (RectInit());
-      term = YAP_TailOfTerm (term);
+      term = TailOfTerm (term);
     }
 
   return (rect);
@@ -64,7 +59,7 @@ void RtreeUdiInsert (Term term,control_t control,index_t clausule)
 
   assert(control);
 
-  r = RectOfTerm(YAP_ArgOfTerm(control->arg,term));
+  r = RectOfTerm(ArgOfTerm(control->arg,term));
   /*TODO: remove latter*/
   if (!control->tree)
     control->tree = RTreeNew();
@@ -75,17 +70,17 @@ void RtreeUdiInsert (Term term,control_t control,index_t clausule)
 int RtreeUdiSearch (control_t control, Yap_UdiCallback callback, void * arg)
 {
   rect_t r;
-  YAP_Term t, Constraints;
+  Term t, Constraints;
 
-  t = YAP_A(control->arg);
+  t = Deref(XREGS[control->arg]); /*YAP_A(control->arg)*/
   if (YAP_IsAttVar(t))
     {
       /*get the constraits rect*/
       Constraints = YAP_AttsOfVar(t);
       /* Yap_DebugPlWrite(Constraints); */
-      if (YAP_IsApplTerm(Constraints))
+      if (IsApplTerm(Constraints))
         {
-          r = RectOfTerm(YAP_ArgOfTerm(2,Constraints));
+          r = RectOfTerm(ArgOfTerm(2,Constraints));
         }
       else  /*hack to destroy udi*/
         {
