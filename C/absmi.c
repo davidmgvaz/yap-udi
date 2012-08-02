@@ -1131,8 +1131,9 @@ Yap_absmi(int inp)
 	  /* next, recover space for the indexing code if it was erased */
 	  if (cl->ClFlags & (ErasedMask|DirtyMask)) {
 	    if (PREG != FAILCODE) {
-	      /* make sure we don't erase the clause we are jumping too */
-	      if (lcl->ClRefCount == 1 && !(lcl->ClFlags & InUseMask)) {
+	      /* make sure we don't erase the clause we are jumping to,
+	       notice that we can erase a number of refs in one go. */
+	      if (!(lcl->ClFlags & InUseMask)) {
 		lcl->ClFlags |= InUseMask;
 		TRAIL_CLREF(lcl);
 	      }
@@ -1439,7 +1440,7 @@ Yap_absmi(int inp)
 	  if (cl->ClFlags & (ErasedMask|DirtyMask)) {
 	    if (PREG != FAILCODE) {
 	      /* make sure we don't erase the clause we are jumping too */
-	      if (lcl->ClRefCount == 1 && !(lcl->ClFlags & InUseMask)) {
+	      if (!(lcl->ClFlags & InUseMask)) {
 		lcl->ClFlags |= InUseMask;
 		TRAIL_CLREF(lcl);
 	      }
@@ -8066,7 +8067,7 @@ Yap_absmi(int inp)
 	  if (cl->ClFlags & (ErasedMask|DirtyMask)) {
 	    if (PREG != FAILCODE) {
 	      /* make sure we don't erase the clause we are jumping too */
-	      if (lcl->ClRefCount == 1 && !(lcl->ClFlags & InUseMask)) {
+	      if (!(lcl->ClFlags & InUseMask)) {
 		lcl->ClFlags |= InUseMask;
 		TRAIL_CLREF(lcl);
 		B->cp_tr = TR;
@@ -13085,7 +13086,7 @@ Yap_absmi(int inp)
 	  goto fail;
 	}
 	PP = PredMetaCall;
-	SREG = (CELL *) pen;
+	SREG = (CELL *) PP;
 	ASP = ENV_YREG;
 	if (ASP > (CELL *)PROTECT_FROZEN_B(B))
 	  ASP = (CELL *)PROTECT_FROZEN_B(B);
@@ -13096,7 +13097,7 @@ Yap_absmi(int inp)
 	  goto creep_pe;
 	}
 	saveregs_and_ycache();
-	if (!Yap_gc(((PredEntry *)SREG)->ArityOfPE, ENV, NEXTOP(PREG, Osbpp))) {
+	if (!Yap_gc(PP->ArityOfPE, ENV, NEXTOP(PREG, Osbpp))) {
 	  Yap_NilError(OUT_OF_STACK_ERROR,LOCAL_ErrorMessage);
 	}
 	setregs_and_ycache();
@@ -13294,7 +13295,7 @@ Yap_absmi(int inp)
 	  goto fail;
 	}
 	PP = PredMetaCall;
-	SREG = (CELL *) pen;
+	SREG = (CELL *) PP;
 	ASP = ENV_YREG;
 	if (ASP > (CELL *)PROTECT_FROZEN_B(B))
 	  ASP = (CELL *)PROTECT_FROZEN_B(B);
@@ -13305,7 +13306,7 @@ Yap_absmi(int inp)
 	  goto creep_pe;
 	}
 	saveregs_and_ycache();
-	if (!Yap_gc(((PredEntry *)SREG)->ArityOfPE, ENV, NEXTOP(PREG, Osbmp))) {
+	if (!Yap_gc(PP->ArityOfPE, ENV, NEXTOP(PREG, Osbmp))) {
 	  Yap_NilError(OUT_OF_STACK_ERROR,LOCAL_ErrorMessage);
 	}
 	setregs_and_ycache();

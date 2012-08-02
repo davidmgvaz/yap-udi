@@ -8,7 +8,7 @@
 @c @setchapternewpage odd
 @c %**end of header
 
-@set VERSION 6.3.0
+@set VERSION 6.3.2
 @set EDITION 4.2.9
 @set UPDATED Oct 2010
 
@@ -200,6 +200,7 @@ Subnodes of Library
 * Heaps:: Labelled binary tree where the key of each node is less
     than or equal to the keys of its children.
 * Lambda:: Ulrich Neumerkel's Lambda Library
+* DBUsage:: Information bout data base usage.
 * LineUtilities:: Line Manipulation Utilities
 * Lists:: List Manipulation
 * MapList:: SWI-Compatible Apply library.
@@ -2640,7 +2641,7 @@ Succeeds once.
 @cyindex fail/0
 Fails always.
 
-@item false
+@item false [ISO]
 @findex false/0
 @syindex false/0
 @cnindex false/0
@@ -2806,7 +2807,7 @@ instead of the call to @code{call/1}, except that any "cut" occurring in
 @cnindex incore/1
 The same as @code{call/1}.
 
-@item call(+@var{Closure},...,?@var{Ai},...)
+@item call(+@var{Closure},...,?@var{Ai},...) [ISO]
 @findex call/n
 @snindex call/n
 @cnindex call/n
@@ -3316,7 +3317,7 @@ Checks whether @var{T} is an atomic term or a database reference.
 @cnindex simple/1
 Checks whether @var{T} is unbound, an atom, or a number.
 
-@item callable(@var{T})
+@item callable(@var{T}) [ISO]
 @findex callable/1
 @syindex callable/1
 @cnindex callable/1
@@ -3336,7 +3337,7 @@ Instantiates each variable in term @var{T} to a term of the form:
 @cnindex unnumbervars/2
 Replace every @code{'$VAR'(@var{I})} by a free variable.
 
-@item ground(@var{T})
+@item ground(@var{T}) [ISO]
 @findex ground/1
 @syindex ground/1
 @cnindex ground/1
@@ -3478,13 +3479,13 @@ Succeed if @var{Subsumer} unifies with the least general
 generalization over @var{T1} and
 @var{T2}.
 
-@item acyclic_term(?@var{Term})
+@item acyclic_term(?@var{Term}) [ISO]
 @findex cyclic_term/1
 @syindex cyclic_term/1
 @cnindex cyclic_term/1
 Succeed if the argument @var{Term} is an acyclic term.
 
-@item term_variables(?@var{Term}, -@var{Variables})
+@item term_variables(?@var{Term}, -@var{Variables}) [ISO]
 @findex  term_variables/2
 @syindex term_variables/2
 @cnindex term_variables/2
@@ -3835,7 +3836,7 @@ left-to-right order.
 
 @table @code
 
-@item compare(@var{C},@var{X},@var{Y})
+@item compare(@var{C},@var{X},@var{Y}) [ISO]
 @findex compare/3
 @syindex compare/3
 @cyindex compare/3
@@ -3912,14 +3913,14 @@ Term @var{X} follows term @var{Y} in the standard order.
 @cyindex @@>=/2
 Term @var{X} does not precede term @var{Y} in the standard order.
 
-@item sort(+@var{L},-@var{S})
+@item sort(+@var{L},-@var{S}) [ISO]
 @findex sort/2
 @syindex sort/2
 @cyindex sort/2
 Unifies @var{S} with the list obtained by sorting @var{L} and  merging
 identical (in the sense of @code{==}) elements.
 
-@item keysort(+@var{L},@var{S})
+@item keysort(+@var{L},@var{S}) [ISO]
 @findex keysort/2
 @syindex keysort/2
 @cyindex keysort/2
@@ -4005,7 +4006,7 @@ Arithmetic expressions in YAP may use the following operators or
 
 @table @code
 
-@item +@var{X}
+@item +@var{X} [ISO]
 The value of @var{X} itself.
 
 @item -@var{X} [ISO]
@@ -4055,13 +4056,13 @@ Sine.
 @item cos(@var{X}) [ISO]
 Cosine.
 
-@item tan(@var{X})
+@item tan(@var{X}) [ISO]
 Tangent.
 
-@item asin(@var{X})
+@item asin(@var{X}) [ISO]
 Arc sine.
 
-@item acos(@var{X})
+@item acos(@var{X}) [ISO]
 Arc cosine.
 
 @item atan(@var{X}) [ISO]
@@ -4069,6 +4070,9 @@ Arc tangent.
 
 @item atan(@var{X},@var{Y})
 Four-quadrant arc tangent. Also available as @code{atan2/2}.
+
+@item atan2(@var{X},@var{Y}) [ISO]
+Four-quadrant arc tangent.
 
 @item sinh(@var{X})
 Hyperbolic sine.
@@ -4191,13 +4195,13 @@ A = 1 rdiv 10
 @end example
 
 
-@item max(@var{X},@var{Y})
+@item max(@var{X},@var{Y}) [ISO]
 The greater value of @var{X} and @var{Y}.
 
-@item min(@var{X},@var{Y})
+@item min(@var{X},@var{Y}) [ISO]
 The lesser value of @var{X} and @var{Y}.
 
-@item @var{X} ^ @var{Y}
+@item @var{X} ^ @var{Y} [ISO]
 @var{X} raised to the power of @var{Y}, (from the C-Prolog syntax).
 
 @item exp(@var{X},@var{Y})
@@ -4214,7 +4218,7 @@ Integer bitwise disjunction.
 
 @item @var{X} # @var{Y}
 @item @var{X} >< @var{Y}
-@item xor(@var{X} , @var{Y})
+@item xor(@var{X} , @var{Y}) [ISO]
 Integer bitwise exclusive disjunction.
 
 @item @var{X} << @var{Y}
@@ -4263,7 +4267,7 @@ Besides numbers and the arithmetic operators described above, certain
 atoms have a special meaning when present in arithmetic expressions:
 
 @table @code
-@item pi
+@item pi [ISO]
 The value of @emph{pi}, the ratio of a circle's circumference to its
 diameter.
 
@@ -5761,12 +5765,13 @@ interactive control from a pipe or a socket.
 @node Sockets, , I/O Control, I/O
 @subsection Using Sockets From YAP
 
-YAP includes a SICStus Prolog compatible socket interface. This
-is a low level interface that provides direct access to the major socket
-system calls. These calls can be used both to open a new connection in
-the network or connect to a networked server. Socket connections are
-described as read/write streams, and standard I/O built-ins can be used
-to write on or read from sockets. The following calls are available:
+YAP includes a SICStus Prolog compatible socket interface. In YAP-6.3
+this uses the @c{clib} package to emulate the old low level interface that
+provides direct access to the major socket system calls. These calls
+can be used both to open a new connection in the network or connect to
+a networked server. Socket connections are described as read/write
+streams, and standard I/O built-ins can be used to write on or read
+from sockets. The following calls are available:
 
 @table @code
 
@@ -5777,13 +5782,15 @@ to write on or read from sockets. The following calls are available:
 Corresponds to the BSD system call @code{socket}. Create a socket for
 domain @var{DOMAIN} of type @var{TYPE} and protocol
 @var{PROTOCOL}. Both @var{DOMAIN} and @var{TYPE} should be atoms,
-whereas @var{PROTOCOL} must be an integer. The new socket object is
+whereas @var{PROTOCOL} must be an integer.
+The new socket object is
 accessible through a descriptor bound to the variable @var{SOCKET}.
 
-The current implementation of YAP only accepts two socket
-domains: @code{'AF_INET'} and @code{'AF_UNIX'}. Socket types depend on the
+The current implementation of YAP only accepts one socket
+domain: @code{'AF_INET'}. @c and @code{'AF_UNIX'}. 
+Socket types depend on the
 underlying operating system, but at least the following types are
-supported: @code{'SOCK_STREAM'} and @code{'SOCK_DGRAM'}.
+supported: @code{'SOCK_STREAM'} and @code{'SOCK_DGRAM'} (untested in 6.3).
 
 @item socket(+@var{DOMAIN},-@var{SOCKET})
 @findex socket/2
@@ -5811,7 +5818,7 @@ corresponding stream is closed with @code{close/1} or @code{close/2}.
 Interface to system call @code{bind}, as used for servers: bind socket
 to a port. Port information depends on the domain:
 @table @code
-@item 'AF_UNIX'(+@var{FILENAME})
+@item 'AF_UNIX'(+@var{FILENAME}) (unsupported)
 @item 'AF_FILE'(+@var{FILENAME})
 use file name @var{FILENAME} for UNIX or local sockets.
 
@@ -5883,7 +5890,8 @@ Set buffering for @var{SOCKET} in @code{read} or @code{write}
 receives the new status which may be one of @code{unbuf} or
 @code{fullbuf}.
 
-@item socket_select(+@var{SOCKETS}, -@var{NEWSTREAMS}, +@var{TIMEOUT}, +@var{STREAMS}, -@var{READSTREAMS})
+@item socket_select(+@var{SOCKETS}, -@var{NEWSTREAMS}, +@var{TIMEOUT},
++@var{STREAMS}, -@var{READSTREAMS}) [unsupported in YAP-6.3]
 @findex socket_select/5
 @syindex socket_select/5
 @cnindex socket_select/5
@@ -6134,7 +6142,7 @@ predicate may also be used for the static predicates that have been
 compiled when the source mode was @code{on}. For more information on
 @code{source/0} (@pxref{Setting the Compiler}).
 
-@item retractall(+@var{G})
+@item retractall(+@var{G}) [ISO]
 @findex retractall/1
 @saindex retractall/1
 @cnindex retractall/1
@@ -8137,7 +8145,7 @@ the @code{-L} flag.
 @findex integer_rounding_function (yap_flag/2 option)
 @*
 Read-only flag telling the rounding function used for integers. Takes the value
-@code{down} for the current version of YAP.
+@code{toward_zero} for the current version of YAP.
 
 @item language
 @findex language (yap_flag/2 option)
@@ -8660,6 +8668,7 @@ Library, Extensions, Built-ins, Top
     than or equal to the keys of its children.
 * LAM:: LAM MPI
 * Lambda:: Ulrich Neumerkel's Lambda Library
+* DBUsage:: Information bout data base usage.
 * Lists:: List Manipulation
 * LineUtilities:: Line Manipulation Utilities
 * MapList:: SWI-Compatible Apply library.
@@ -10613,7 +10622,7 @@ Creates a new list with the same elements as @var{Queue}.
 
 @node Random, Read Utilities, Queues, Library
 @section Random Number Generator
-@cindex queue
+@cindex random
 
 The following random number operations are included with the
 @code{use_module(library(random))} command. Since YAP-4.3.19 YAP uses
@@ -12697,7 +12706,7 @@ The vertices @var{Vertices} have no outgoing edge in graph
 
 @end table
 
-@node UnDGraphs, Lambda , DGraphs, Library
+@node UnDGraphs, DBUsage , DGraphs, Library
 @section Undirected Graphs
 @cindex undirected graphs
 
@@ -12793,7 +12802,50 @@ directed graph @var{DGraph}.
 
 @end table
 
-@node Lambda, LAM, UnDGraphs, Library
+@node DBUsage, Lambda, UnDGraphs, Library
+@section Memory Usage in Prolog Data-Base
+@cindex DBUsage
+
+This library provides a set of utilities for studying memory usage in YAP.
+The following routines are available once included with the
+@code{use_module(library(dbusage))} command.
+
+@table @code
+@item db_usage
+@findex db_usage/0
+@snindex db_usage/0
+@cnindex db_usage/0
+Give general overview of data-base usage in the system.
+
+@item db_static
+@findex db_static/0
+@snindex db_static/0
+@cnindex db_static/0
+List memory usage for every static predicate.
+
+@item db_static(+@var{Threshold})
+@findex db_static/0
+@snindex db_static/0
+@cnindex db_static/0
+List memory usage for every static predicate. Predicate must use more
+than @var{Threshold} bytes.
+
+@item db_dynamic
+@findex db_dynamic/0
+@snindex db_dynamic/0
+@cnindex db_dynamic/0
+List memory usage for every dynamic predicate.
+
+@item db_dynamic(+@var{Threshold})
+@findex db_dynamic/0
+@snindex db_dynamic/0
+@cnindex db_dynamic/0
+List memory usage for every dynamic predicate. Predicate must use more
+than @var{Threshold} bytes.
+
+@end table
+
+@node Lambda, LAM, DBUsage, Library
 @section Lambda Expressions
 @cindex Lambda Expressions
 
@@ -16922,6 +16974,19 @@ Return the predicate whose main functor is @var{f}.
 @item  @code{YAP_PredEntryPtr} YAP_AtomToPred(@code{YAP_Atom} @var{at},
 @findex YAP_AtomToPred (C-Interface function)
 Return the arity 0 predicate whose name is @var{at}.
+
+@item  @code{YAP_PredEntryPtr}
+YAP_FunctorToPredInModule(@code{YAP_Functor} @var{f}, @code{YAP_Module} @var{m}),
+@findex YAP_FunctorToPredInModule (C-Interface function)
+Return the predicate in module @var{m} whose main functor is @var{f}.
+
+@item  @code{YAP_PredEntryPtr} YAP_AtomToPred(@code{YAP_Atom} @var{at},
+@findex YAP_AtomToPred (C-Interface function)
+Return the arity 0 predicate whose name is @var{at}.
+
+@item  @code{YAP_PredEntryPtr} YAP_AtomToPred(@code{YAP_Atom} @var{at}, @code{YAP_Module} @var{m}),
+@findex YAP_AtomToPredInModule (C-Interface function)
+Return the arity 0 predicate in module @var{m} whose name is @var{at}.
 
 @item  @code{YAP_Bool} YAP_EnterGoal(@code{YAP_PredEntryPtr} @var{pe},
 @code{YAP_Term *} @var{array}, @code{YAP_dogoalinfo *} @var{infop})
