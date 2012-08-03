@@ -1,20 +1,15 @@
 #ifndef _BTREE_UDI_
 #define _BTREE_UDI_
 
-/*Prolog term from :- udi(a(-,+,+)).
-  User defined index announce
-*/
-extern control_t BtreeUdiInit (Term spec,
-                                void *pred,
-                                int arity);
+extern void BtreeUdiInit (control_t control);
 
 /*this is called in each asserted term that was declared to udi_init*/
-extern control_t BtreeUdiInsert (Term term, /*asserted term*/
-                                  control_t control,
-                                  index_t clausule); /*to store in tree and return
-                                                     in search*/
+extern void BtreeUdiInsert (Term term, /*asserted term*/
+                            control_t control,
+                            size_t clausule); /*to store in tree and
+                                                      return in search*/
 
-extern void *BtreeUdiSearch (control_t control);
-extern int BtreeUdiDestroy(control_t control);
+extern int BtreeUdiSearch (control_t control, Yap_UdiCallback callback, void *data);
+extern void BtreeUdiDestroy(control_t control);
 
 #endif /* _BTREE_UDI_ */

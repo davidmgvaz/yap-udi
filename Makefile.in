@@ -376,6 +376,7 @@ ENGINE_OBJECTS = \
 	parser.o qlyr.o qlyw.o save.o scanner.o sort.o stdpreds.o \
 	sysbits.o threads.o tracer.o \
 	udi.o mdalloc.o rtree.o rtree_udi.o udi_indexers.o gmpis.o \
+	b+tree.o b+tree_udi.o \
 	unify.o userpreds.o utilpreds.o \
 	yap-args.o write.o \
 	blobs.o swi.o ypstdio.o $(IOLIB_OBJECTS)  @MPI_OBJS@

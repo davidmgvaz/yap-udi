@@ -23,7 +23,7 @@ typedef struct ControlExt * controlext_t;
 
 /* include indexers */
 #include "rtree_udi.h"
-/* #include "b+tree_udi.h" */
+#include "b+tree_udi.h"
 
 /* structure holding available indexers and access functions */
 struct UDIIndexers
@@ -40,12 +40,12 @@ struct UDIIndexers udi_indexers[] = {
     "rtree",
     NULL,
     {&RtreeUdiInit, &RtreeUdiInsert, &RtreeUdiSearch, &RtreeUdiDestroy}
-  }/* , */
-  /* { */
-  /*   "btree", */
-  /*   NULL, */
-  /*   {&BtreeUdiInit, &BtreeUdiInsert, &BtreeUdiSearch, &BtreeUdiDestroy} */
-  /* } */
+  },
+  {
+    "btree",
+    NULL,
+    {&BtreeUdiInit, &BtreeUdiInsert, &BtreeUdiSearch, &BtreeUdiDestroy}
+  }
 };
 
 #include "udi_indexers.h"
