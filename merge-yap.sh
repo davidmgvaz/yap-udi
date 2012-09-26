@@ -1,5 +1,10 @@
 #!/bin/bash
 
+#add remote branch
+#git remote add yap git://yap.git.sourceforge.net/gitroot/yap/yap-6.3
+#git fetch yap
+#git checkout -b yap yap/master
+
 # switch to yap branch
 git checkout yap
 # pull changes
