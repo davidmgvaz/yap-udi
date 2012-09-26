@@ -33,6 +33,42 @@ STATIC_PROTO(void  RestoreEntries, (PropEntry *, int USES_REGS));
 STATIC_PROTO(void  CleanCode, (PredEntry * USES_REGS));
 
 static void
+GrowAtomTable(void) {
+  CACHE_REGS
+  UInt size = LOCAL_ExportAtomHashTableSize; 
+  export_atom_hash_entry_t *p, *newt, *oldt = LOCAL_ExportAtomHashChain;
+  UInt new_size = size + (size > 1024 ? size : 1024);
+  UInt i;
+
+  newt = (export_atom_hash_entry_t *)calloc(new_size,sizeof(export_atom_hash_entry_t));
+  if (!newt) {
+    return;
+  }
+  p = oldt;
+  for (i = 0 ; i < size ; p++,i++) {
+    Atom a = p->val;
+    export_atom_hash_entry_t *newp;
+    CELL hash;
+    char *apt;
+    
+
+    if (!a) continue;
+    apt = RepAtom(a)->StrOfAE;
+    hash = HashFunction((unsigned char *)apt)/(2*sizeof(CELL)) % new_size;
+    newp = newt+hash;
+    while (newp->val) {
+      newp++;
+      if (newp == newt+new_size)
+	newp = newt;
+    }
+    newp->val = a;
+  }
+  LOCAL_ExportAtomHashChain = newt;
+  LOCAL_ExportAtomHashTableSize = new_size;
+  free(oldt);
+}
+
+static void
 LookupAtom(Atom at)
 {
   CACHE_REGS
@@ -40,70 +76,148 @@ LookupAtom(Atom at)
   CELL hash = HashFunction((unsigned char *)p) % LOCAL_ExportAtomHashTableSize;
   export_atom_hash_entry_t *a;
 
-  a = LOCAL_ExportAtomHashChain[hash];
-  while (a) {
+  a = LOCAL_ExportAtomHashChain+hash;
+  while (a->val) {
     if (a->val == at) {
       return;
     }
-    a = a->next;
-  }
-  a = (export_atom_hash_entry_t *)malloc(sizeof(export_atom_hash_entry_t));
-  if (!a) {
-    return;
+    a++;
+    if (a == LOCAL_ExportAtomHashChain+LOCAL_ExportAtomHashTableSize)
+      a = LOCAL_ExportAtomHashChain;
+
   }
   a->val = at;
-  a->next = LOCAL_ExportAtomHashChain[hash];
-  LOCAL_ExportAtomHashChain[hash] = a;
   LOCAL_ExportAtomHashTableNum++;
+  if (LOCAL_ExportAtomHashTableNum > 
+      LOCAL_ExportAtomHashTableSize/2
+      ) {
+    GrowAtomTable();
+    if (!LOCAL_ExportAtomHashChain) {
+      return;
+    }
+  }
+}
+
+static void
+GrowFunctorTable(void) {
+  CACHE_REGS
+  UInt size = LOCAL_ExportFunctorHashTableSize; 
+  export_functor_hash_entry_t *p, *newt, *oldt = LOCAL_ExportFunctorHashChain;
+  UInt new_size = size + (size > 1024 ? size : 1024);
+  UInt i;
+
+  newt = (export_functor_hash_entry_t *)calloc(new_size,sizeof(export_functor_hash_entry_t));
+  if (!newt) {
+    return;
+  }
+  p = oldt;
+  for (i = 0 ; i < size ; p++,i++) {
+    Functor f = p->val;
+    export_functor_hash_entry_t *newp;
+    CELL hash;
+
+    if (!f) continue;
+    hash = ((CELL)(f))/(2*sizeof(CELL)) % new_size;
+    newp = newt+hash;
+    while (newp->val) {
+      newp++;
+      if (newp == newt+new_size)
+	newp = newt;
+    }
+    newp->val = p->val;
+    newp->arity = p->arity;
+    newp->name = p->name;
+  }
+  LOCAL_ExportFunctorHashChain = newt;
+  LOCAL_ExportFunctorHashTableSize = new_size;
+  free(oldt);
 }
 
 static void
 LookupFunctor(Functor fun)
 {
   CACHE_REGS
-  CELL hash = (CELL)(fun) % LOCAL_ExportFunctorHashTableSize;
+  CELL hash = ((CELL)(fun))/(2*sizeof(CELL)) % LOCAL_ExportFunctorHashTableSize;
   export_functor_hash_entry_t *f;
   Atom name = NameOfFunctor(fun);
   UInt arity  = ArityOfFunctor(fun);
 
-  f = LOCAL_ExportFunctorHashChain[hash];
-  while (f) {
-    if (f->name == name && f->arity == arity) {
+  f = LOCAL_ExportFunctorHashChain+hash;
+  while (f->val) {
+    if (f->val == fun) {
       return;
     }
-    f = f->next;
-  }
-  f = (export_functor_hash_entry_t *)malloc(sizeof(export_functor_hash_entry_t));
-  if (!f) {
-    return;
+    f++;
+    if (f == LOCAL_ExportFunctorHashChain+LOCAL_ExportFunctorHashTableSize)
+      f = LOCAL_ExportFunctorHashChain;
   }
   LookupAtom(name);
   f->val = fun;
   f->name = name;
   f->arity = arity;
-  f->next = LOCAL_ExportFunctorHashChain[hash];
-  LOCAL_ExportFunctorHashChain[hash] = f;
   LOCAL_ExportFunctorHashTableNum++;
+  if (LOCAL_ExportFunctorHashTableNum > 
+      LOCAL_ExportFunctorHashTableSize/2
+      ) {
+    GrowFunctorTable();
+    if (!LOCAL_ExportFunctorHashChain) {
+      return;
+    }
+  }
+}
+
+static void
+GrowPredTable(void) {
+  CACHE_REGS
+  UInt size = LOCAL_ExportPredEntryHashTableSize; 
+  export_pred_entry_hash_entry_t *p, *newt, *oldt = LOCAL_ExportPredEntryHashChain;
+  UInt new_size = size + (size > 1024 ? size : 1024);
+  UInt i;
+
+  newt = (export_pred_entry_hash_entry_t *)calloc(new_size,sizeof(export_pred_entry_hash_entry_t));
+  if (!newt) {
+    return;
+  }
+  p = oldt;
+  for (i = 0 ; i < size ; p++,i++) {
+    PredEntry *pe = p->val;
+    export_pred_entry_hash_entry_t *newp;
+    CELL hash;
+
+    if (!pe) continue;
+    hash = ((CELL)(pe))/(2*sizeof(CELL)) % new_size;
+    newp = newt+hash;
+    while (newp->val) {
+      newp++;
+      if (newp == newt+new_size)
+	newp = newt;
+    }
+    newp->val = p->val;
+    newp->arity = p->arity;
+    newp->u.f = p->u.f;
+    newp->module = p->module;
+  }
+  LOCAL_ExportPredEntryHashChain = newt;
+  LOCAL_ExportPredEntryHashTableSize = new_size;
+  free(oldt);
 }
 
 static void
 LookupPredEntry(PredEntry *pe)
 {
   CACHE_REGS
-  CELL hash = (CELL)(pe) % LOCAL_ExportPredEntryHashTableSize;
+  CELL hash = (((CELL)(pe))/(2*sizeof(CELL))) % LOCAL_ExportPredEntryHashTableSize;
   export_pred_entry_hash_entry_t *p;
   UInt arity  = pe->ArityOfPE;
 
-  p = LOCAL_ExportPredEntryHashChain[hash];
-  while (p) {
+  p = LOCAL_ExportPredEntryHashChain+hash;
+  while (p->val) {
     if (p->val == pe) {
       return;
     }
-    p = p->next;
-  }
-  p = (export_pred_entry_hash_entry_t *)malloc(sizeof(export_pred_entry_hash_entry_t));
-  if (!p) {
-    return;
+    p++;
+    if (p == LOCAL_ExportPredEntryHashChain+LOCAL_ExportPredEntryHashTableSize)
+      p = LOCAL_ExportPredEntryHashChain;
   }
   p->arity = arity;
   p->val = pe;
@@ -134,36 +248,82 @@ LookupPredEntry(PredEntry *pe)
     p->module = AtomProlog;
   }
   LookupAtom(p->module);
-  p->next = LOCAL_ExportPredEntryHashChain[hash];
-  LOCAL_ExportPredEntryHashChain[hash] = p;
   LOCAL_ExportPredEntryHashTableNum++;
+  if (LOCAL_ExportPredEntryHashTableNum > 
+      LOCAL_ExportPredEntryHashTableSize/2
+      ) {
+    GrowPredTable();
+    if (!LOCAL_ExportPredEntryHashChain) {
+      return;
+    }
+  }
+}
+
+
+static void
+GrowDBRefTable(void) {
+  CACHE_REGS
+  UInt size = LOCAL_ExportDBRefHashTableSize; 
+  export_dbref_hash_entry_t *p, *newt, *oldt = LOCAL_ExportDBRefHashChain;
+  UInt new_size = size + (size > 1024 ? size : 1024);
+  UInt i;
+
+  newt = (export_dbref_hash_entry_t *)calloc(new_size,sizeof(export_dbref_hash_entry_t));
+  if (!newt) {
+    return;
+  }
+  p = oldt;
+  for (i = 0 ; i < size ; p++,i++) {
+    DBRef dbr = p->val;
+    export_dbref_hash_entry_t *newp;
+    CELL hash;
+
+    if (!dbr) continue;
+    hash = ((CELL)(dbr))/(2*sizeof(CELL)) % new_size;
+    newp = newt+hash;
+    while (newp->val) {
+      newp++;
+      if (newp == newt+new_size)
+	newp = newt;
+    }
+    newp->val = p->val;
+    newp->sz = p->sz;
+    newp->refs = p->refs;
+  }
+  LOCAL_ExportDBRefHashChain = newt;
+  LOCAL_ExportDBRefHashTableSize = new_size;
+  free(oldt);
 }
 
 static void
 LookupDBRef(DBRef ref)
 {
   CACHE_REGS
-  CELL hash = Unsigned(ref) % LOCAL_ExportDBRefHashTableSize;
+  CELL hash = ((CELL)(ref))/(2*sizeof(CELL)) % LOCAL_ExportDBRefHashTableSize;
   export_dbref_hash_entry_t *a;
 
-  a = LOCAL_ExportDBRefHashChain[hash];
-  while (a) {
+  a = LOCAL_ExportDBRefHashChain+hash;
+  while (a->val) {
     if (a->val == ref) {
       a->refs++;
       return;
     }
-    a = a->next;
-  }
-  a = (export_dbref_hash_entry_t *)malloc(sizeof(export_dbref_hash_entry_t));
-  if (!a) {
-    return;
+    a++;
+    if (a == LOCAL_ExportDBRefHashChain+LOCAL_ExportDBRefHashTableSize)
+      a = LOCAL_ExportDBRefHashChain;
   }
   a->val = ref;
   a->sz = ((LogUpdClause *)ref)->ClSize;
   a->refs = 1;
-  a->next = LOCAL_ExportDBRefHashChain[hash];
-  LOCAL_ExportDBRefHashChain[hash] = a;
   LOCAL_ExportDBRefHashTableNum++;
+  if (LOCAL_ExportDBRefHashTableNum > 
+      LOCAL_ExportDBRefHashTableSize/2
+      ) {
+    GrowDBRefTable();
+    if (!LOCAL_ExportDBRefHashChain) {
+      return;
+    }
+  }
 }
 
 static void
@@ -172,16 +332,16 @@ InitHash(void)
   CACHE_REGS
   LOCAL_ExportFunctorHashTableNum = 0;
   LOCAL_ExportFunctorHashTableSize = EXPORT_FUNCTOR_TABLE_SIZE;
-  LOCAL_ExportFunctorHashChain = (export_functor_hash_entry_t **)calloc(1, sizeof(export_functor_hash_entry_t *)* LOCAL_ExportFunctorHashTableSize);
+  LOCAL_ExportFunctorHashChain = (export_functor_hash_entry_t *)calloc(LOCAL_ExportFunctorHashTableSize, sizeof(export_functor_hash_entry_t ));
   LOCAL_ExportAtomHashTableNum = 0;
   LOCAL_ExportAtomHashTableSize = EXPORT_ATOM_TABLE_SIZE;
-  LOCAL_ExportAtomHashChain = (export_atom_hash_entry_t **)calloc(1, sizeof(export_atom_hash_entry_t *)* LOCAL_ExportAtomHashTableSize);
+  LOCAL_ExportAtomHashChain = (export_atom_hash_entry_t *)calloc( LOCAL_ExportAtomHashTableSize,  sizeof(export_atom_hash_entry_t *));
   LOCAL_ExportPredEntryHashTableNum = 0;
   LOCAL_ExportPredEntryHashTableSize = EXPORT_PRED_ENTRY_TABLE_SIZE;
-  LOCAL_ExportPredEntryHashChain = (export_pred_entry_hash_entry_t **)calloc(1, sizeof(export_pred_entry_hash_entry_t *)* LOCAL_ExportPredEntryHashTableSize);
+  LOCAL_ExportPredEntryHashChain = (export_pred_entry_hash_entry_t *)calloc(LOCAL_ExportPredEntryHashTableSize, sizeof(export_pred_entry_hash_entry_t));
   LOCAL_ExportDBRefHashTableNum = 0;
   LOCAL_ExportDBRefHashTableSize = EXPORT_DBREF_TABLE_SIZE;
-  LOCAL_ExportDBRefHashChain = (export_dbref_hash_entry_t **)calloc(1, sizeof(export_dbref_hash_entry_t *)* LOCAL_ExportDBRefHashTableSize);
+  LOCAL_ExportDBRefHashChain = (export_dbref_hash_entry_t *)calloc(EXPORT_DBREF_TABLE_SIZE, sizeof(export_dbref_hash_entry_t));
 }
 
 static void
@@ -410,9 +570,8 @@ SaveHash(IOSTREAM *stream)
   CHECK(save_tag(stream, QLY_START_ATOMS));
   CHECK(save_uint(stream, LOCAL_ExportAtomHashTableNum));
   for (i = 0; i < LOCAL_ExportAtomHashTableSize; i++) {
-    export_atom_hash_entry_t *a = LOCAL_ExportAtomHashChain[i];
-    while (a) {
-      export_atom_hash_entry_t *a0 = a;
+    export_atom_hash_entry_t *a = LOCAL_ExportAtomHashChain+i;
+    if (a->val) {
       Atom at = a->val;
       CHECK(save_uint(stream, (UInt)at));
       if (IsWideAtom(at)) {
@@ -424,48 +583,37 @@ SaveHash(IOSTREAM *stream)
 	CHECK(save_uint(stream, strlen(RepAtom(at)->StrOfAE)));
 	CHECK(save_bytes(stream, at->StrOfAE, (strlen(at->StrOfAE)+1)*sizeof(char)));
       }
-      a = a->next;
-      free(a0);
     }
   }
   save_tag(stream, QLY_START_FUNCTORS);
   save_uint(stream, LOCAL_ExportFunctorHashTableNum);
   for (i = 0; i < LOCAL_ExportFunctorHashTableSize; i++) {
-    export_functor_hash_entry_t *f = LOCAL_ExportFunctorHashChain[i];
-    while (f) {
-      export_functor_hash_entry_t *f0 = f;
-      CHECK(save_uint(stream, (UInt)(f->val)));
-      CHECK(save_uint(stream, f->arity));
-      CHECK(save_uint(stream, (CELL)(f->name)));
-      f = f->next;
-      free(f0);
-    }
+    export_functor_hash_entry_t *f = LOCAL_ExportFunctorHashChain+i;
+    if (!(f->val))
+      continue;
+    CHECK(save_uint(stream, (UInt)(f->val)));
+    CHECK(save_uint(stream, f->arity));
+    CHECK(save_uint(stream, (CELL)(f->name)));
   }
   save_tag(stream, QLY_START_PRED_ENTRIES);
   save_uint(stream, LOCAL_ExportPredEntryHashTableNum);
   for (i = 0; i < LOCAL_ExportPredEntryHashTableSize; i++) {
-    export_pred_entry_hash_entry_t *p = LOCAL_ExportPredEntryHashChain[i];
-    while (p) {
-      export_pred_entry_hash_entry_t *p0 = p;
-      CHECK(save_uint(stream, (UInt)(p->val)));
-      CHECK(save_uint(stream, p->arity));
-      CHECK(save_uint(stream, (UInt)p->module));
-      CHECK(save_uint(stream, (UInt)p->u.f));
-      p = p->next;
-      free(p0);
-    }
+    export_pred_entry_hash_entry_t *p = LOCAL_ExportPredEntryHashChain+i;
+    if (!(p->val))
+      continue;
+    CHECK(save_uint(stream, (UInt)(p->val)));
+    CHECK(save_uint(stream, p->arity));
+    CHECK(save_uint(stream, (UInt)p->module));
+    CHECK(save_uint(stream, (UInt)p->u.f));
   }
   save_tag(stream, QLY_START_DBREFS);
   save_uint(stream, LOCAL_ExportDBRefHashTableNum);
   for (i = 0; i < LOCAL_ExportDBRefHashTableSize; i++) {
-    export_dbref_hash_entry_t *p = LOCAL_ExportDBRefHashChain[i];
-    while (p) {
-      export_dbref_hash_entry_t *p0 = p;
+    export_dbref_hash_entry_t *p = LOCAL_ExportDBRefHashChain+i;
+    if (p->val) {
       CHECK(save_uint(stream, (UInt)(p->val)));
       CHECK(save_uint(stream, p->sz));
       CHECK(save_uint(stream, p->refs));
-      p = p->next;
-      free(p0);
     }
   }
   save_tag(stream, QLY_FAILCODE);
@@ -486,8 +634,7 @@ save_clauses(IOSTREAM *stream, PredEntry *pp) {
     LogUpdClause *cl = ClauseCodeToLogUpdClause(FirstC);
 
     while (cl != NULL) {
-      if (pp->TimeStampOfPred >= cl->ClTimeStart &&
-	  pp->TimeStampOfPred <= cl->ClTimeEnd) {
+      if (IN_BETWEEN(cl->ClTimeStart, pp->TimeStampOfPred, cl->ClTimeEnd)) {
 	UInt size = cl->ClSize;
 	CHECK(save_tag(stream, QLY_START_LU_CLAUSE));
 	CHECK(save_uint(stream, (UInt)cl));
@@ -542,6 +689,7 @@ save_pred(IOSTREAM *stream, PredEntry *ap) {
   CHECK(save_uint(stream, ap->PredFlags));
   CHECK(save_uint(stream, ap->cs.p_code.NOfClauses));
   CHECK(save_uint(stream, ap->src.IndxId));
+  CHECK(save_uint(stream, ap->TimeStampOfPred));
   return save_clauses(stream, ap);
 }
 

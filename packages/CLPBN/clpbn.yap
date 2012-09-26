@@ -16,8 +16,10 @@
 		  op( 500, xfy, with)]).
 
 :- use_module(library(atts)).
+:- use_module(library(bhash)).
 :- use_module(library(lists)).
 :- use_module(library(terms)).
+:- use_module(library(maplist)).
 
 %
 % avoid the overhead of using goal_expansion/2.
@@ -35,7 +37,8 @@
 	      [ve/3,
 	       check_if_ve_done/1,
 	       init_ve_solver/4,
-	       run_ve_solver/3
+	       run_ve_solver/3,
+	       call_ve_ground_solver/6
 	      ]).
 
 :- use_module('clpbn/horus_ground',
@@ -63,7 +66,8 @@
 :- use_module('clpbn/bdd',
 	      [bdd/3,
 	       init_bdd_solver/4,
-	       run_bdd_solver/3
+	       run_bdd_solver/3,
+	       call_bdd_ground_solver/6
 	      ]).
 
 %% :- use_module('clpbn/bnt',
@@ -232,7 +236,7 @@ project_attributes(GVars, _AVars0) :-
 	use_parfactors(on),
 	clpbn_flag(solver, Solver), Solver \= fove, !,
 	generate_network(GVars, GKeys, Keys, Factors, Evidence),
-	call_ground_solver(Solver, GVars, GKeys, Keys, Factors, Evidence, _Avars0).
+	call_ground_solver(Solver, GVars, GKeys, Keys, Factors, Evidence).
 project_attributes(GVars, AVars) :-
 	suppress_attribute_display(false),
 	AVars = [_|_],
@@ -304,7 +308,7 @@ write_out(jt, GVars, AVars, DiffVars) :-
 write_out(bdd, GVars, AVars, DiffVars) :-
 	bdd(GVars, AVars, DiffVars).
 write_out(bp, _GVars, _AVars, _DiffVars) :- 
-    writeln('interface not supported anymore').
+    writeln('interface not supported any longer').
 	%bp(GVars, AVars, DiffVars).
 write_out(gibbs, GVars, AVars, DiffVars) :-
 	gibbs(GVars, AVars, DiffVars).
@@ -314,9 +318,56 @@ write_out(fove, GVars, AVars, DiffVars) :-
 	call_horus_lifted_solver(GVars, AVars, DiffVars).
 
 % call a solver with keys, not actual variables
-call_ground_solver(bp, GVars, GoalKeys, Keys, Factors, Evidence, Answ) :-
-	call_horus_ground_solver(GVars, GoalKeys, Keys, Factors, Evidence, Answ).
+call_ground_solver(bp, GVars, GoalKeys, Keys, Factors, Evidence) :- !,
+	call_horus_ground_solver(GVars, GoalKeys, Keys, Factors, Evidence, _Answ).
+call_ground_solver(bdd, GVars, GoalKeys, Keys, Factors, Evidence) :- !,
+	call_bdd_ground_solver(GVars, GoalKeys, Keys, Factors, Evidence, _Answ).
+call_ground_solver(ve, GVars, GoalKeys, Keys, Factors, Evidence) :- !,
+	call_ve_ground_solver(GVars, GoalKeys, Keys, Factors, Evidence, _Answ).
+call_ground_solver(Solver, GVars, _GoalKeys, Keys, Factors, Evidence) :-
+	% traditional solver
+	b_hash_new(Hash0),
+	foldl(gvar_in_hash, GVars, Hash0, HashI), 
+	foldl(key_to_var, Keys, AllVars, HashI, Hash1),
+	foldl(evidence_to_v, Evidence, _EVars, Hash1, Hash),
+	%writeln(Keys:AllVars),
+	maplist(factor_to_dist(Hash), Factors),
+	% evidence
+	retract(use_parfactors(on)),
+	write_out(Solver, [GVars], AllVars, _),
+	assert(use_parfactors(on)).
 
+%
+% convert a PFL network (without constraints)
+% into CLP(BN) for evaluation
+%
+gvar_in_hash(V, Hash0, Hash) :-
+	get_atts(V, [key(K)]),
+	b_hash_insert(Hash0, K, V, Hash). 
+
+key_to_var(K, V, Hash0, Hash0) :-
+	b_hash_lookup(K, V, Hash0), !.
+key_to_var(K, V,Hash0, Hash) :-
+	put_atts(V, [key(K)]),
+	b_hash_insert(Hash0, K, V, Hash).
+
+evidence_to_v(K=E, V, Hash0, Hash0) :-
+	b_hash_lookup(K, V, Hash0), !,
+	clpbn:put_atts(V,[evidence(E)]).
+evidence_to_v(K=E, V, Hash0, Hash) :-
+	b_hash_insert(Hash0, K, V, Hash),
+	clpbn:put_atts(V,[evidence(E)]).
+
+factor_to_dist(Hash, f(bayes, Id, Ks)) :-
+	maplist(key_to_var(Hash), Ks, [V|Parents]),
+	Ks =[Key|_],
+	pfl:skolem(Key, Domain),
+	pfl:get_pfl_parameters(Id, CPT),
+	dist(p(Domain,CPT,Parents), DistInfo, Key, Parents),
+	put_atts(V,[dist(DistInfo,Parents)]).
+
+key_to_var(Hash, K, V) :-
+	b_hash_lookup(K, V, Hash).
 
 get_bnode(Var, Goal) :-
 	get_atts(Var, [key(Key),dist(Dist,Parents)]),

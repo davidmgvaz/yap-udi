@@ -16,35 +16,36 @@
 % with \phi defined by abi_table(X) and whose domain and constraints
 % is obtained from professor/1.
 %
+
 bayes abi(K)::[h,m,l] ; abi_table ; [professor(K)].
 
 bayes pop(K)::[h,m,l], abi(K) ; pop_table ; [professor(K)].
-
-bayes grade(C,S)::[a,b,c,d], int(S), diff(C) ; grade_table ; [registration(_,C,S)].
-
-bayes sat(C,S,P)::[h,m,l], abi(P), grade(C,S) ; sat_table ; [reg_sat(C,S,P)].
-
-bayes rat(C) :: [h,m,l], avg(Sats) ; avg ; [course_rating(C, Sats)].
 
 bayes diff(C) :: [h,m,l] ; diff_table ; [course(C,_)].
 
 bayes int(S) :: [h,m,l] ; int_table ; [student(S)].
 
-bayes rank(S) :: [a,b,c,d], avg(Grades) ; avg ; [student_ranking(S,Grades)].
+bayes grade(C,S)::[a,b,c,d], int(S), diff(C) ; grade_table ; [registration(_,C,S)].
+
+bayes satisfaction(C,S)::[h,m,l], abi(P), grade(C,S) ; sat_table ; [reg_satisfaction(C,S,P)].
+
+bayes rat(C) :: [h,m,l], Sats ; avg ; [course_rat(C, Sats)].
+
+bayes rank(S) :: [a,b,c,d], Grades ; avg ; [student_ranking(S,Grades)].
 
 
 grade(Key, Grade) :-
 	registration(Key, CKey, SKey),
 	grade(CKey, SKey, Grade).
 
-reg_sat(CKey, SKey, PKey) :-
+reg_satisfaction(CKey, SKey, PKey) :-
 	registration(_Key, CKey, SKey),
 	course(CKey, PKey).
 
-course_rating(CKey, Sats) :-
+course_rat(CKey, Sats) :-
 	course(CKey,  _),
-	setof(sat(CKey,SKey,PKey),
-	   reg_sat(CKey, SKey, PKey),
+	setof(satisfaction(CKey,SKey),
+	   PKey^reg_satisfaction(CKey, SKey, PKey),
           Sats).
 
 student_ranking(SKey, Grades) :-
@@ -53,13 +54,39 @@ student_ranking(SKey, Grades) :-
 
 :- ensure_loaded(tables).
 
+% convert to longer names 
+professor_ability(P,A) :- abi(P, A).
+
+professor_popularity(P,A) :- pop(P, A).
+
+registration_grade(R,A) :-
+	registration(R,C,S),
+	grade(C,S,A).
+
+registration_satisfaction(R,A) :-
+	registration(R,C,S),
+	satisfaction(C,S,A).
+
+student_intelligence(P,A) :- int(P, A).
+
+course_difficulty(P,A) :- diff(P, A).
+
+
+registration_course(R,C) :-
+	registration(R, C, _).
+
+registration_student(R,S) :-
+	registration(R, _, S).
+
+course_rating(C,X) :- rat(C,X).
+
 %
 % evidence
 %
-abi(p0, h).
+%abi(p0, h).
 
-pop(p1, m).
-pop(p2, h).
+%pop(p1, m).
+%pop(p2, h).
 
 % Query
 % ?- abi(p0, X).

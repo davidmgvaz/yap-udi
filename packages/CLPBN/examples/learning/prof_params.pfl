@@ -15,13 +15,14 @@ pop_table([0.3,0.3,0.4,0.3,0.3,0.4,0.3,0.3,0.4]).
 goal_list([/*abi(p0,h),
 	abi(p1,m),
 	abi(p2,m),
-	abi(p3,m),
-	abi(p4,l),*/
+	abi(p3,m),*/
+	abi(p4,l),
 	pop(p5,h),
 	abi(p5,_),
 	abi(p6,_),
 	pop(p7,_)]).
 
+professor(p0).
 professor(p1).
 professor(p2).
 professor(p3).
@@ -33,8 +34,8 @@ professor(p8).
 
 %:- clpbn:set_clpbn_flag(em_solver,gibbs).
 %:- clpbn:set_clpbn_flag(em_solver,jt).
-:- clpbn:set_clpbn_flag(em_solver,ve).
-%:- clpbn:set_clpbn_flag(em_solver,bp).
+%:- clpbn:set_clpbn_flag(em_solver,ve).
+:- clpbn:set_clpbn_flag(em_solver,bp).
 
 timed_main :-
 	statistics(runtime, _),

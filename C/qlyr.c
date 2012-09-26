@@ -320,16 +320,8 @@ static void
 InitHash(void)
 {
   CACHE_REGS
-  LOCAL_ImportFunctorHashTableSize = EXPORT_FUNCTOR_TABLE_SIZE;
-  LOCAL_ImportFunctorHashChain = (import_functor_hash_entry_t **)calloc(1, sizeof(import_functor_hash_entry_t *)* LOCAL_ImportFunctorHashTableSize);
-  LOCAL_ImportAtomHashTableSize = EXPORT_ATOM_TABLE_SIZE;
-  LOCAL_ImportAtomHashChain = (import_atom_hash_entry_t **)calloc(1, sizeof(import_atom_hash_entry_t *)* LOCAL_ImportAtomHashTableSize);
   LOCAL_ImportOPCODEHashTableSize = EXPORT_OPCODE_TABLE_SIZE;
   LOCAL_ImportOPCODEHashChain = (import_opcode_hash_entry_t **)calloc(1, sizeof(import_opcode_hash_entry_t *)* LOCAL_ImportOPCODEHashTableSize);
-  LOCAL_ImportPredEntryHashTableSize = EXPORT_PRED_ENTRY_TABLE_SIZE;
-  LOCAL_ImportPredEntryHashChain = (import_pred_entry_hash_entry_t **)calloc(1, sizeof(import_pred_entry_hash_entry_t *)* LOCAL_ImportPredEntryHashTableSize);
-  LOCAL_ImportDBRefHashTableSize = EXPORT_DBREF_TABLE_SIZE;
-  LOCAL_ImportDBRefHashChain = (import_dbref_hash_entry_t **)calloc(1, sizeof(import_dbref_hash_entry_t *)* LOCAL_ImportDBRefHashTableSize);
 }
 
 static void
@@ -387,7 +379,7 @@ CloseHash(void)
       import_dbref_hash_entry_t *a0 = a;
 #ifdef DEBUG
       if (!a->count) {
-	fprintf(stderr,"WARNING: unused reference %p\n",a);
+	fprintf(stderr,"WARNING: unused reference %p %p\n",a->val, a->oval);
       }
 #endif
       a = a->next;
@@ -694,6 +686,8 @@ ReadHash(IOSTREAM *stream)
   }
   RCHECK(read_tag(stream) == QLY_START_ATOMS);
   LOCAL_ImportAtomHashTableNum = read_uint(stream);
+  LOCAL_ImportAtomHashTableSize = LOCAL_ImportAtomHashTableNum*2;
+  LOCAL_ImportAtomHashChain = (import_atom_hash_entry_t **)calloc(LOCAL_ImportAtomHashTableSize, sizeof(import_atom_hash_entry_t *));
   for (i = 0; i < LOCAL_ImportAtomHashTableNum; i++) {
     Atom oat = (Atom)read_uint(stream);
     Atom at;
@@ -734,6 +728,8 @@ ReadHash(IOSTREAM *stream)
   /* functors */
   RCHECK(read_tag(stream) == QLY_START_FUNCTORS);
   LOCAL_ImportFunctorHashTableNum = read_uint(stream);
+  LOCAL_ImportFunctorHashTableSize = 2*LOCAL_ImportFunctorHashTableNum;
+  LOCAL_ImportFunctorHashChain = (import_functor_hash_entry_t **)calloc(LOCAL_ImportFunctorHashTableSize, sizeof(import_functor_hash_entry_t *));
   for (i = 0; i < LOCAL_ImportFunctorHashTableNum; i++) {
     Functor of = (Functor)read_uint(stream);
     UInt arity = read_uint(stream);
@@ -749,6 +745,8 @@ ReadHash(IOSTREAM *stream)
   }
   RCHECK(read_tag(stream) == QLY_START_PRED_ENTRIES);
   LOCAL_ImportPredEntryHashTableNum = read_uint(stream);
+  LOCAL_ImportPredEntryHashTableSize = 2*LOCAL_ImportPredEntryHashTableNum;
+  LOCAL_ImportPredEntryHashChain = (import_pred_entry_hash_entry_t **)calloc( LOCAL_ImportPredEntryHashTableSize, sizeof(import_pred_entry_hash_entry_t *));
   for (i = 0; i < LOCAL_ImportPredEntryHashTableNum; i++) {
     PredEntry *ope = (PredEntry *)read_uint(stream), *pe;
     UInt arity = read_uint(stream);
@@ -795,11 +793,16 @@ ReadHash(IOSTREAM *stream)
   }
   RCHECK(read_tag(stream) == QLY_START_DBREFS);
   LOCAL_ImportDBRefHashTableNum = read_uint(stream);
+  LOCAL_ImportDBRefHashTableSize = 2*LOCAL_ImportDBRefHashTableNum;
+  LOCAL_ImportDBRefHashChain = (import_dbref_hash_entry_t **)calloc(LOCAL_ImportDBRefHashTableSize, sizeof(import_dbref_hash_entry_t *));
   for (i = 0; i < LOCAL_ImportDBRefHashTableNum; i++) {
     LogUpdClause *ocl = (LogUpdClause *)read_uint(stream);
     UInt sz = read_uint(stream);
     UInt nrefs = read_uint(stream);
     LogUpdClause *ncl = (LogUpdClause *)Yap_AlwaysAllocCodeSpace(sz);
+    if (!ncl) {
+      QLYR_ERROR(OUT_OF_CODE_SPACE);	
+    }
     ncl->Id = FunctorDBRef;
     ncl->ClRefCount = nrefs;
     InsertDBRef((DBRef)ocl,(DBRef)ncl);
@@ -812,7 +815,6 @@ static void
 read_clauses(IOSTREAM *stream, PredEntry *pp, UInt nclauses, UInt flags) {
   CACHE_REGS
   if (pp->PredFlags & LogUpdatePredFlag) {
-    pp->TimeStampOfPred = 0L; 
     /* first, clean up whatever was there */
     if (pp->cs.p_code.NOfClauses) {
       LogUpdClause *cl;
@@ -927,6 +929,7 @@ read_pred(IOSTREAM *stream, Term mod) {
       ap->src.OwnerFile = AtomAdjust(ap->src.OwnerFile);
     }
   }
+  ap->TimeStampOfPred = read_uint(stream);
   /* multifile predicates cannot reside in module 0 */
   if (flags & MultiFileFlag && ap->ModuleOfPred == PROLOG_MODULE)
     ap->ModuleOfPred = TermProlog;
@@ -996,9 +999,13 @@ p_read_module_preds( USES_REGS1 )
 }
 
 static void
-ReInitCatch(void)
+ReInitProlog(void)
 {
-  Term t = Yap_MkNewApplTerm(PredHandleThrow->FunctorOfPred, PredHandleThrow->ArityOfPE);
+  Term t = MkAtomTerm(AtomInitProlog);
+#if defined(YAPOR) || defined(TABLING)
+  Yap_init_root_frames();
+#endif /* YAPOR || TABLING */
+  Yap_InitYaamRegs();
   YAP_RunGoalOnce(t);
 }
 
@@ -1027,7 +1034,7 @@ p_read_program( USES_REGS1 )
   Sclose( stream );
   /* back to the top level we go */
   Yap_CloseSlots(PASS_REGS1);
-  ReInitCatch();
+  ReInitProlog();
   Yap_RestartYap( 3 );
   return TRUE;
 }
@@ -1041,7 +1048,6 @@ Yap_Restore(char *s, char *lib_dir)
     return -1;
   read_module(stream);
   Sclose( stream );
-  ReInitCatch();
   return DO_ONLY_CODE;
 }
 

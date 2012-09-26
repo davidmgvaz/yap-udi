@@ -22,7 +22,7 @@ PLBASE=@prefix@
 PLARCH=@ARCH@
 PLINCL=$(PLBASE)/include
 PLLIBDIR=$(PLBASE)/share/Yap
-SOLIBDIR=$(PLBASE)/lib/Yap
+SOLIBDIR=@libdir@/Yap
 PKGDOCDIR=$(PLBASE)/share/doc/Yap/packages
 PKGEXDIR=$(PLBASE)/share/doc/Yap/packages/examples
 XPCEBASE=$(PLBASE)/xpce
@@ -50,6 +50,8 @@ CFLAGS=$(COFLAGS) $(CWFLAGS) $(CMFLAGS) $(CIFLAGS) $(PKGCFLAGS) @DEFS@
 
 LDSOFLAGS=@LDFLAGS@ @EXTRA_LIBS_FOR_SWIDLLS@
 LDFLAGS=$(PKGLDFLAGS)
+
+LIBPLEMBED=
 
 MKINDEX=(cd $(srcdir) ; $(PL) -f none -g make -t halt)
 

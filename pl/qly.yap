@@ -157,6 +157,9 @@ save_program(File, _Goal) :-
 	catch(yap_flag(F,V),_,fail),
 	fail.
 '$do_init_state' :-
+	'$reinit_thread0',
+	 fail.
+'$do_init_state' :-
 	set_value('$user_module',user),
 	'$protect',
 	fail.
@@ -199,10 +202,10 @@ save_program(File, _Goal) :-
 	'$do_startup_reconsult'(X),
 	fail.
 '$init_from_saved_state_and_args' :-
-    recorded('$restore_flag', init_file(M:B), R),
-    erase(R),
-    '$do_startup_reconsult'(M:B),
-    fail.
+	recorded('$restore_flag', init_file(M:B), R),
+	erase(R),
+	'$do_startup_reconsult'(M:B),
+	fail.
 '$init_from_saved_state_and_args' :-
 	'$startup_goals',
 	fail.
@@ -219,6 +222,13 @@ save_program(File, _Goal) :-
 	P \= [],
 	set_value('$extend_file_search_path',[]),
 	'$extend_file_search_path'(P).
+'$init_path_extensions' :-
+	retractall(user:library_directory(_)),
+	% make sure library_directory is open.
+	\+ clause(user:library_directory(_),_),
+	'$system_library_directories'(D),
+	assert(user:library_directory(D)),
+	fail.
 '$init_path_extensions'.
  
 % then we can execute the programs.
@@ -275,6 +285,22 @@ save_program(File, _Goal) :-
 	 fail.
  '$myddas_import_all'.
 	 
+
+qsave_file(File) :-
+	recorded('$module', '$module'(F,Mod,Exps), _),
+	'$fetch_parents_module'(Mod, Parents),
+	'$fetch_imports_module'(Mod, Imps),
+	'$fetch_multi_files_module'(Mod, MFs),
+	'$fetch_meta_predicates_module'(Mod, Metas),
+	'$fetch_module_transparents_module'(Mod, ModTransps),
+	asserta(Mod:'@mod_info'(F, Exps, Parents, Imps, Metas, ModTransps)),
+	atom_concat(Mod,'.qly',OF),
+	open(OF, write, S, [type(binary)]),
+	'$qsave_module_preds'(S, Mod),
+	close(S),
+	abolish(Mod:'@mod_info'/6),
+	fail.
+qsave_file(_).
 
 qsave_module(Mod) :-
 	recorded('$module', '$module'(F,Mod,Exps), _),

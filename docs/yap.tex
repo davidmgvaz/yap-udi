@@ -4664,7 +4664,10 @@ will not have a leading dot.
 Defines the relation: The stream @var{S} is opened on the file @var{F}
 in mode @var{M}. It might be used to obtain all open streams (by
 backtracking) or to access the stream for a file @var{F} in mode
-@var{M}, or to find properties for a stream @var{S}.
+@var{M}, or to find properties for a stream @var{S}. Notice that some
+streams might not be associated to a file: in this case YAP tries to
+return the file number. If that is not available, YAP unifies @var{F}
+with @var{S}.
 
 @item is_stream(@var{S})
 @findex is_stream/1
@@ -9554,21 +9557,21 @@ The following routines are available once included with the
 @code{use_module(library(apply_macros))} command.
 
 @table @code
-@item maplist(+@var{Pred}, ?@var{ListIn}, ?@var{ListOut})
+@item maplist(:@var{Pred}, ?@var{ListIn}, ?@var{ListOut})
 @findex maplist/3
 @snindex maplist/3
 @cnindex maplist/3
       Creates @var{ListOut} by applying the predicate @var{Pred} to all
 elements of @var{ListIn}.
 
-@item maplist(+@var{Pred}, ?@var{ListIn})
+@item maplist(:@var{Pred}, ?@var{ListIn})
 @findex maplist/3
 @snindex maplist/3
 @cnindex maplist/3
       Creates @var{ListOut} by applying the predicate @var{Pred} to all
 elements of @var{ListIn}.
 
-@item maplist(+@var{Pred}, ?@var{L1}, ?@var{L2}, ?@var{L3})
+@item maplist(:@var{Pred}, ?@var{L1}, ?@var{L2}, ?@var{L3})
 @findex maplist/4
 @snindex maplist/4
 @cnindex maplist/4
@@ -9576,7 +9579,7 @@ elements of @var{ListIn}.
       @code{call(@var{Pred},@var{A1},@var{A2},@var{A3})} holds for every
       corresponding element in lists @var{L1},  @var{L2}, and @var{L3}.
 
-@item maplist(+@var{Pred}, ?@var{L1}, ?@var{L2}, ?@var{L3}, ?@var{L4})
+@item maplist(:@var{Pred}, ?@var{L1}, ?@var{L2}, ?@var{L3}, ?@var{L4})
 @findex maplist/5
 @snindex maplist/5
 @cnindex maplist/5
@@ -9585,19 +9588,19 @@ elements of @var{ListIn}.
       for every corresponding element in lists @var{L1}, @var{L2}, @var{L3}, and
       @var{L4}.
 
-@item checklist(+@var{Pred}, +@var{List})
+@item checklist(:@var{Pred}, +@var{List})
 @findex checklist/2
 @snindex checklist/2
 @cnindex checklist/2
       Succeeds if the predicate @var{Pred} succeeds on all elements of @var{List}.
 
-@item selectlist(+@var{Pred}, +@var{ListIn}, ?@var{ListOut})
+@item selectlist(:@var{Pred}, +@var{ListIn}, ?@var{ListOut})
 @findex selectlist/3
 @snindex selectlist/3
 @cnindex selectlist/3
       Creates @var{ListOut} of all list elements of @var{ListIn} that pass a given test
 
-@item convlist(+@var{Pred}, +@var{ListIn}, ?@var{ListOut})
+@item convlist(:@var{Pred}, +@var{ListIn}, ?@var{ListOut})
 @findex convlist/3
 @snindex convlist/3
 @cnindex convlist/3
@@ -9605,12 +9608,97 @@ elements of @var{ListIn}.
 applying the predicate @var{Pred} to all list elements on which
 @var{Pred} succeeds
 
-@item sumlist(+@var{Pred}, +@var{List}, ?@var{AccIn}, ?@var{AccOut})
+@item sumlist(:@var{Pred}, +@var{List}, ?@var{AccIn}, ?@var{AccOut})
 @findex sumlist/4
 @snindex sumlist/4
 @cnindex sumlist/4
       Calls @var{Pred} on all elements of List and collects a result in
+@var{Accumulator}. Same as @code{foldl/4}.
+
+@item foldl(:@var{Pred}, +@var{List}, ?@var{AccIn}, ?@var{AccOut})
+@findex foldl/4
+@snindex foldl/4
+@cnindex foldl/4
+      Calls @var{Pred} on all elements of @code{List} and collects a result in
 @var{Accumulator}.
+
+@item foldl(:@var{Pred}, +@var{List1}, +@var{List2}, ?@var{AccIn}, ?@var{AccOut})
+@findex foldl/5
+@snindex foldl/5
+@cnindex foldl/5
+      Calls @var{Pred} on all elements of @code{List1} and
+@code{List2} and collects a result in @var{Accumulator}. Same as
+@code{foldr/4}.
+
+@item foldl(:@var{Pred}, +@var{List1}, +@var{List2}, +@var{List3}, ?@var{AccIn}, ?@var{AccOut})
+@findex foldl/6
+@snindex foldl/6
+@cnindex foldl/6
+      Calls @var{Pred} on all elements of @code{List1}, @code{List2}, and
+@code{List3} and collects a result in @var{Accumulator}.
+
+@item foldl(:@var{Pred}, +@var{List1}, +@var{List2}, +@var{List3}, +@var{List4}, ?@var{AccIn}, ?@var{AccOut})
+@findex foldl/7
+@snindex foldl/7
+@cnindex foldl/7
+      Calls @var{Pred} on all elements of @code{List1}, @code{List2}, @code{List3}, and
+@code{List4} and collects a result in @var{Accumulator}.
+
+@item foldl2(:@var{Pred}, +@var{List}, ?@var{X0}, ?@var{X}, ?@var{Y0}, ?@var{Y})
+@findex foldl2/6
+@snindex foldl2/6
+@cnindex foldl2/6
+      Calls @var{Pred} on all elements of @code{List} and collects a result in
+@var{X} and @var{Y}.
+
+@item foldl2(:@var{Pred}, +@var{List}, ?@var{List1}, ?@var{X0}, ?@var{X}, ?@var{Y0}, ?@var{Y})
+@findex foldl2/7
+@snindex foldl2/7
+@cnindex foldl2/7
+      Calls @var{Pred} on all elements of @code{List} and collects a result in
+@var{X} and @var{Y}.
+
+@item foldl3(:@var{Pred}, +@var{List1}, ?@var{List2}, ?@var{X0},
+?@var{X}, ?@var{Y0}, ?@var{Y}, ?@var{Z0}, ?@var{Z})
+
+@findex foldl3/6
+@snindex foldl3/6
+@cnindex foldl3/6
+      Calls @var{Pred} on all elements of @code{List} and collects a
+result in @var{X}, @var{Y} and @var{Z}.
+
+@item scanl(:@var{Pred}, +@var{List}, +@var{V0}, ?@var{Values})
+@findex scanl/4
+@snindex scanl/4
+@cnindex scanl/4
+         Left scan of  list.  The  scanl   family  of  higher  order list
+	operations is defined by:
+
+@example
+	  scanl(P, [X11,...,X1n], ..., [Xm1,...,Xmn], V0, [V0,V1,...,Vn]) :-
+		P(X11, ..., Xm1, V0, V1),
+		...
+	        P(X1n, ..., Xmn, Vn-1, Vn).
+@end example
+
+
+@item scanl(:@var{Pred}, +@var{List1}, +@var{List2}, ?@var{V0}, ?@var{Vs})
+@findex scanl/5
+@snindex scanl/5
+@cnindex scanl/5
+         Left scan of  list.  
+
+@item scanl(:@var{Pred}, +@var{List1}, +@var{List2}, +@var{List3}, ?@var{V0}, ?@var{Vs})
+@findex scanl/6
+@snindex scanl/6
+@cnindex scanl/6
+         Left scan of  list.  
+
+@item scanl(:@var{Pred}, +@var{List1}, +@var{List2}, +@var{List3}, +@var{List4}, ?@var{V0}, ?@var{Vs})
+@findex scanl/7
+@snindex scanl/7
+@cnindex scanl/7
+         Left scan of  list.  
 
 @item mapargs(+@var{Pred}, ?@var{TermIn}, ?@var{TermOut})
 @findex mapargs/3
@@ -10906,6 +10994,28 @@ For all nodes @var{Key} in @var{Keys}, if the value associated with key
 holds, then the value associated with @var{Key} in @var{TN} is
 @var{ValF}. Fails if or if @code{call(G,Val0,ValF)} is not satisfiable
 for all @var{Var0}. Assumes keys are not repeated.
+
+@item rb_fold(+@var{T},+@var{G},+@var{Acc0}, -@var{AccF})
+@findex rb_fold/4
+@snindex rb_fold/4
+@cnindex rb_fold/4
+	For all nodes @var{Key} in the tree @var{T}, if the value
+associated with key @var{Key} is @var{V} in tree @var{T}, if
+@code{call(G,V,Acc1,Acc2)} holds, then if @var{VL} is value of the
+previous node in inorder, @code{call(G,VL,_,Acc0)} must hold, and if
+@var{VR} is the value of the next node in inorder,
+@code{call(G,VR,Acc1,_)} must hold.
+
+@item rb_key_fold(+@var{T},+@var{G},+@var{Acc0}, -@var{AccF})
+@findex rb_key_fold/4
+@snindex rb_key_fold/4
+@cnindex rb_key_fold/4
+	For all nodes @var{Key} in the tree @var{T}, if the value
+associated with key @var{Key} is @var{V} in tree @var{T}, if
+@code{call(G,Key,V,Acc1,Acc2)} holds, then if @var{VL} is value of the
+previous node in inorder, @code{call(G,KeyL,VL,_,Acc0)} must hold, and if
+@var{VR} is the value of the next node in inorder,
+@code{call(G,KeyR,VR,Acc1,_)} must hold.
 
 @item rb_clone(+@var{T},+@var{NT},+@var{Nodes})
 @findex rb_clone/3
@@ -17624,14 +17734,28 @@ characters. The term is written according to a mask of the following
 flags in the @code{flag} argument: @code{YAP_WRITE_QUOTED},
 @code{YAP_WRITE_HANDLE_VARS}, @code{YAP_WRITE_USE_PORTRAY},  and @code{YAP_WRITE_IGNORE_OPS}.
 
-@item  @code{void} YAP_WriteBuffer(@code{YAP_Term} @var{t}, @code{char *}
-@var{buff}, @code{unsigned int}
+@item  @code{int} YAP_WriteBuffer(@code{YAP_Term} @var{t}, @code{char *}
+@var{buff}, @code{size_t}
 @var{size}, @code{int} @var{flags})
 @findex  YAP_WriteBuffer/4
-Write a YAP_Term @var{t} to buffer @var{buff} with size @var{size}. The
-term is written according to a mask of the following flags in the
-@code{flag} argument: @code{YAP_WRITE_QUOTED},
-@code{YAP_WRITE_HANDLE_VARS}, and @code{YAP_WRITE_IGNORE_OPS}.
+Write a YAP_Term @var{t} to buffer @var{buff} with size
+@var{size}. The term is written
+according to a mask of the following flags in the @code{flag}
+argument: @code{YAP_WRITE_QUOTED}, @code{YAP_WRITE_HANDLE_VARS},
+@code{YAP_WRITE_USE_PORTRAY}, and @code{YAP_WRITE_IGNORE_OPS}. The
+function will fail if it does not have enough space in the buffer.
+
+@item  @code{char *} YAP_WriteDynamicBuffer(@code{YAP_Term} @var{t}, @code{char *}
+@var{buff}, @code{size_t}
+@var{size}, @code{size_t}
+@var{*lengthp}, @code{size_t}
+@var{*encodingp}, @code{int} @var{flags})
+@findex  YAP_WriteDynamicBuffer/6
+Write a YAP_Term @var{t} to buffer @var{buff} with size
+@var{size}. The code will allocate an extra buffer if @var{buff} is
+@code{NULL} or if @code{buffer} does not have enough room. The
+variable @code{lengthp} is assigned the size of the resulting buffer,
+and @code{encodingp} will receive the type of encoding (currently only @code{PL_ENC_ISO_LATIN_1} and @code{PL_ENC_WCHAR} are supported)
 
 @item  @code{void} YAP_InitConsult(@code{int} @var{mode}, @code{char *} @var{filename})
 @findex YAP_InitConsult/2
