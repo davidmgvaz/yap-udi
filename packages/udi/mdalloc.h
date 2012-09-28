@@ -9,7 +9,7 @@ struct MDAlloc
    *  - disk based allocation
    */
   int fd;
-  int flags;
+  int prot;
   size_t size;
   void * region;
 };
@@ -25,8 +25,8 @@ extern long mdpagesize;
  * allocates the first page (index 0).
  *
  * Memory based allocation: MDInit(0,0); fd and flags will be ignored
- * Disk based allocation: MDInit(fd, flags)
- *   flags: PROT_* from mmap
+ * Disk based allocation: MDInit(fd, prot)
+ *   prot: PROT_* from mmap
  *   (must  not  conflict with the open mode of the file)
  *
  * Disk based allocation with PROT_WRITE flag, it is assumed the file 
@@ -37,7 +37,7 @@ extern long mdpagesize;
  *
  * In Read mode MAP_SHARED is used to allow sharing of resources.
  */
-extern mdalloc_t MDInit (int fd, int flags);
+extern mdalloc_t MDInit (int fd, int prot);
 
 /*
  * Destroys MDAlloc, clearing memory and flushing do disk if necessary

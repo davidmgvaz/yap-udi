@@ -1,7 +1,7 @@
 #ifndef _UTHASH_UDI_PRIVATE_
 #define _UTHASH_UDI_PRIVATE_
 
-#include <uthash.h>
+#include "uthash.h"
 #include "Yap.h"
 
 typedef size_t index_t;
