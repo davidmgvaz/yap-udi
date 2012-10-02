@@ -113,6 +113,8 @@ size_t MDAlloc (mdalloc_t m)
   oldsize = m->size;
   m->size += mdpagesize;
 
+  /* fprintf(stderr, "Alloc: %zu %zu\n", oldsize, m->size); */
+
   if (m->fd > 2) /*disk based*/
     {
       if ((m->prot & PROT_WRITE)) /*in write mode*/

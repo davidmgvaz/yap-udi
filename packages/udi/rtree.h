@@ -49,6 +49,11 @@ extern void RTreeDestroy (rtree_t rtree);
 extern void RTreePrint(rtree_t rtree);
 
 /*
+ * Stat info on the rtree
+ */
+extern void RTreeInfo(rtree_t rtree);
+
+/*
  * Initializes an infinity MBR
  */
 extern rect_t RectInit (void);

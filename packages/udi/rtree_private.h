@@ -44,6 +44,9 @@ struct RTreeInfo
 
   /* root node index */
   size_t nidx;
+
+  /*stats on the tree*/
+  size_t count;
 };
 typedef struct RTreeInfo * rtreeinfo_t;
 
@@ -56,6 +59,7 @@ typedef mdalloc_t rtree_t;
 
 #define MAXCARD(t) (RTREEINFO(t)->maxcard)
 #define MINCARD(t) (RTREEINFO(t)->mincard)
+#define RTREECOUNT(t) (RTREEINFO(t)->count)
 
 #define NODE(t,index) ((node_t) MDGET(t,index))
 
@@ -111,6 +115,10 @@ static partition_t PartitionNew (size_t);
 static void PartitionPush (partition_t, branch_t);
 static branch_t PartitionPop (partition_t);
 static branch_t PartitionGet (partition_t, int);
+
+static void RTreeNodeInfo (rtree_t, index_t,
+			   size_t *, size_t *,
+			   size_t *, size_t *);
 
 void RTreePrint_(rtree_t t, index_t i);
 static void RectPrint (rect_t);

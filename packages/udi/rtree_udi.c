@@ -2,6 +2,9 @@
 
 #include "Yap.h"
 
+/*TODO: check this I only need iatoms.h*/
+#include "clause.h"
+
 #include "udi.h"
 
 #include "rtree.h"
@@ -82,15 +85,19 @@ int RtreeUdiSearch (control_t control, Yap_UdiCallback callback, void * arg)
         {
           r = RectOfTerm(ArgOfTerm(2,Constraints));
         }
-      else  /*hack to destroy udi*/
-        {
-          RTreeDestroy(control->tree);
-          fprintf(stderr,"Destroy RTree\n");
-          control->tree = NULL;
-          return -1;
-        }
+      /* else  /\*hack to destroy udi*\/ */
+      /*   { */
+      /*     RTreeDestroy(control->tree); */
+      /*     fprintf(stderr,"Destroy RTree\n"); */
+      /*     control->tree = NULL; */
+      /*     return -1; */
+      /*   } */
 
       return RTreeSearch(control->tree, r, (SearchHitCallback) callback, arg);
+    }
+  if(IsAtomTerm(t) && (AtomOfTerm(t) == AtomQuery))
+    {
+      RTreeInfo(control->tree);
     }
   return -1; /*YAP FALLBACK*/
 }

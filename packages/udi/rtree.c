@@ -19,6 +19,7 @@ rtree_t RTreeNew (void)
   /* first page stores tree info */
   MAXCARD(t) = (mdpagesize - 2*sizeof(int)) / sizeof(branch_t);
   MINCARD(t) = MAXCARD(t) / 2;
+  RTREECOUNT(t) = 0;
 
   n = RTreeNewNode(t);
   /*t->region might change after RTreeNewNode so
@@ -136,6 +137,7 @@ void RTreeInsert (rtree_t t, rect_t r, index_t data)
 
       ROOTINDEX(t) = new_root;
     }
+  RTREECOUNT(t) ++;
 }
 
 static int RTreeInsertNode (rtree_t t, index_t index,
@@ -543,6 +545,64 @@ void RTreePrint_(rtree_t t, index_t index)
         RTreePrint_(t, n->branch[i].child);
       else
         break;
+}
+
+void RTreeInfo(rtree_t rtree)
+{
+  size_t nodesize,pages;
+  size_t branch,leafs,cbranch,cleafs;
+
+  fprintf(stderr,"RTree Stats:\n");
+  fprintf(stderr,"\tPage Size %zu\n",mdpagesize);
+
+  nodesize = SIZEOF_NODE(MAXCARD(rtree));
+  fprintf(stderr,"\tNode Size %zu (waisted %zu) carry %zu max elemtents\n",
+	  nodesize, mdpagesize - nodesize, MAXCARD(rtree));
+
+  fprintf(stderr,"\tTree depth %d\n",ROOTNODE(rtree)->level);
+
+  pages = rtree->size/mdpagesize;
+  fprintf(stderr,"\tTotal memory %zu bytes in %zu pages\n",
+	  rtree->size,pages);
+
+  branch = leafs = cbranch = cleafs = 0;
+  RTreeNodeInfo(rtree,ROOTINDEX(rtree),&branch,&leafs,&cbranch,&cleafs);
+  fprintf(stderr,"\t Branch Nodes %zu with %zu elements (%zu%% occupation)\n",
+	  branch,cbranch,(cbranch*100 / (MAXCARD(rtree)*branch)));
+
+  fprintf(stderr,"\t Leaf Nodes %zu with %zu elements (%zu%% occupation)\n",
+	  leafs,cleafs,(cleafs*100 / (MAXCARD(rtree)*leafs)));
+}
+
+static void RTreeNodeInfo(rtree_t t, index_t index,
+			  size_t *branch, size_t *leafs,
+			  size_t *cbranch, size_t *cleafs)
+{
+  int i;
+  node_t n;
+
+  n = NODE(t,index);
+  if (n->level == 0)
+    {
+      (*cleafs) += n->count;
+      return;
+    }
+  else
+    {
+      (*branch) ++;
+      (*cbranch) += n->count;
+      if (n->level == 1)
+	{
+	  (*leafs) += n->count;
+	}
+    }
+
+  for (i = 0; i < MAXCARD(t); i++)
+    if (!EMPTYBRANCH(n->branch[i]))
+      RTreeNodeInfo(t, n->branch[i].child,
+		    branch, leafs, cbranch, cleafs);
+    else
+      break;
 }
 
 static void RectPrint (rect_t r)
