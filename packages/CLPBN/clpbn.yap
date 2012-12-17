@@ -6,6 +6,8 @@
 		  clpbn_key/2,
 		  clpbn_init_solver/4,
 		  clpbn_run_solver/3,
+		  pfl_init_solver/6,
+		  pfl_run_solver/4,
 		  clpbn_finalize_solver/1,
 		  clpbn_init_solver/5,
 		  clpbn_run_solver/4,
@@ -38,14 +40,16 @@
 	       check_if_ve_done/1,
 	       init_ve_solver/4,
 	       run_ve_solver/3,
+	       init_ve_ground_solver/5,
+	       run_ve_ground_solver/3,
 	       call_ve_ground_solver/6
 	      ]).
 
 :- use_module('clpbn/horus_ground',
 	      [call_horus_ground_solver/6,
 	       check_if_horus_ground_solver_done/1,
-	       init_horus_ground_solver/4,
-	       run_horus_ground_solver/3,
+	       init_horus_ground_solver/5,
+	       run_horus_ground_solver/4,
 	       finalize_horus_ground_solver/1
 	      ]).
 
@@ -67,6 +71,8 @@
 	      [bdd/3,
 	       init_bdd_solver/4,
 	       run_bdd_solver/3,
+	       init_bdd_ground_solver/5,
+	       run_bdd_ground_solver/3,
 	       call_bdd_ground_solver/6
 	      ]).
 
@@ -232,16 +238,26 @@ clpbn_marginalise(V, Dist) :-
 % called by top-level
 % or by call_residue/2
 %
-project_attributes(GVars, _AVars0) :-
+project_attributes(GVars0, _AVars0) :-
 	use_parfactors(on),
 	clpbn_flag(solver, Solver), Solver \= fove, !,
-	generate_network(GVars, GKeys, Keys, Factors, Evidence),
-	call_ground_solver(Solver, GVars, GKeys, Keys, Factors, Evidence).
+	generate_network(GVars0, GKeys, Keys, Factors, Evidence),
+	b_setval(clpbn_query_variables, f(GVars0,Evidence)),
+	simplify_query(GVars0, GVars),
+	( GKeys = [] 
+        ->
+	  GVars0 = [V|_],
+	  clpbn_display:put_atts(V, [posterior([],[],[],[])])
+	;
+	  call_ground_solver(Solver, GVars, GKeys, Keys, Factors, Evidence)
+        ).
 project_attributes(GVars, AVars) :-
 	suppress_attribute_display(false),
 	AVars = [_|_],
 	solver(Solver),
 	( GVars = [_|_] ; Solver = graphs), !,
+	% we don't pass query variables in this way
+	b_setval(clpbn_query_variables, none),
 	clpbn_vars(AVars, DiffVars, AllVars),
 	get_clpbn_vars(GVars,CLPBNGVars0),
 	simplify_query_vars(CLPBNGVars0, CLPBNGVars),
@@ -255,6 +271,20 @@ project_attributes(GVars, AVars) :-
 	    write_out(Solver, [CLPBNGVars], AllVars, DiffVars)
 	).
 project_attributes(_, _).
+
+%
+% check for query variables with evidence
+%
+simplify_query([V|GVars0], GVars) :-
+	get_atts(V, [evidence(_)]), !,
+	simplify_query(GVars0, GVars).
+simplify_query([V|GVars0], GVars) :-
+	get_atts(V, [key(K)]),
+	pfl:evidence(K, _), !,
+	simplify_query(GVars0, GVars).
+simplify_query([V|GVars0], [V|GVars]) :-
+	simplify_query(GVars0, GVars).
+simplify_query([], []).
 
 match([], _Keys).
 match([V|GVars], Keys) :-
@@ -273,13 +303,7 @@ get_clpbn_vars([V|GVars],[V|CLPBNGVars]) :-
 	get_clpbn_vars(GVars,CLPBNGVars).
 get_clpbn_vars([_|GVars],CLPBNGVars) :-
 	get_clpbn_vars(GVars,CLPBNGVars).
-
 get_clpbn_vars([],[]).
-get_clpbn_vars([V|GVars],[V|CLPBNGVars]) :-
-	get_atts(V, [key(_)]), !,
-	get_clpbn_vars(GVars,CLPBNGVars).
-get_clpbn_vars([_|GVars],CLPBNGVars) :-
-	get_clpbn_vars(GVars,CLPBNGVars).
 
 simplify_query_vars(LVs0, LVs) :-
 	sort(LVs0,LVs1),
@@ -299,6 +323,7 @@ get_rid_of_ev_vars([V|LVs0],[V|LVs]) :-
 
 
 % do nothing if we don't have query variables to compute.
+write_out(_, [], _, _) :- !.
 write_out(graphs, _, AVars, _) :-
 	clpbn2graph(AVars).
 write_out(ve, GVars, AVars, DiffVars) :-
@@ -532,6 +557,23 @@ clpbn_init_solver(bdd, LVs, Vs0, VarsWithUnboundKeys, State) :-
 clpbn_init_solver(pcg, LVs, Vs0, VarsWithUnboundKeys, State) :-
 	init_pcg_solver(LVs, Vs0, VarsWithUnboundKeys, State).
 
+%
+% This is a routine to start a solver, called by the learning procedures (ie, em).
+% LVs is a list of lists of variables one is interested in eventually marginalising out
+% Vs0 gives the original graph
+% AllDiffs gives variables that are not fully constrainted, ie, we don't fully know
+% the key. In this case, we assume different instances will be bound to different
+% values at the end of the day.
+%
+pfl_init_solver(QueryKeys, AllKeys, Factors, Evidence, VE, bdd) :-
+	init_bdd_ground_solver(QueryKeys, AllKeys, Factors, Evidence, VE).
+pfl_init_solver(QueryKeys, AllKeys, Factors, Evidence, VE, ve) :-
+	init_ve_ground_solver(QueryKeys, AllKeys, Factors, Evidence, VE).
+pfl_init_solver(QueryKeys, AllKeys, Factors, Evidence, VE, bp) :-
+	init_horus_ground_solver(QueryKeys, AllKeys, Factors, Evidence, VE).
+pfl_init_solver(QueryKeys, AllKeys, Factors, Evidence, VE, hve) :-
+	init_horus_ground_solver(QueryKeys, AllKeys, Factors, Evidence, VE).
+
 
 %
 % LVs is the list of lists of variables to marginalise
@@ -561,6 +603,16 @@ clpbn_run_solver(bdd, LVs, LPs, State) :-
 clpbn_run_solver(pcg, LVs, LPs, State) :-
 	run_pcg_solver(LVs, LPs, State).
 
+pfl_run_solver(LVs, LPs, State, ve) :-
+	run_ve_ground_solver(LVs, LPs, State).
+pfl_run_solver(LVs, LPs, State, bdd) :-
+	run_bdd_ground_solver(LVs, LPs, State).
+pfl_run_solver(LVs, LPs, State, bp) :-
+	run_horus_ground_solver(LVs, LPs, State, bp).
+pfl_run_solver(LVs, LPs, State, hve) :-
+    run_horus_ground_solver(LVs, LPs, State, hve).
+
+
 add_keys(Key1+V1,_Key2,Key1+V1).
 
 %
@@ -581,6 +633,9 @@ probability(Goal, Prob) :-
 	findall(Prob, do_probability(Goal, [], Prob), [Prob]).
 	
 conditional_probability(Goal, ListOfGoals, Prob) :-
+	\+ ground(Goal),
+	throw(error(ground(Goal),conditional_probability(Goal, ListOfGoals, Prob))).
+conditional_probability(Goal, ListOfGoals, Prob) :-
 	\+ ground(ListOfGoals), !,
 	throw(error(ground(ListOfGoals),conditional_probability(Goal, ListOfGoals, Prob))).
 conditional_probability(Goal, ListOfGoals, Prob) :-
@@ -589,7 +644,7 @@ conditional_probability(Goal, ListOfGoals, Prob) :-
 do_probability(Goal, ListOfGoals, Prob) :-
 	evidence_to_var(Goal, C, NGoal, V),
 	call_residue(run( ListOfGoals, NGoal), Vars), !,
-	match_probability(Vars, C, V, Prob).
+	match_probability(Vars, NGoal, C, V, Prob).
 
 run(ListOfGoals,Goal) :-
 	do(ListOfGoals),
@@ -615,11 +670,21 @@ variabilise_last([Arg], Arg, [V], V).
 variabilise_last([Arg1,Arg2|Args], Arg, Arg1.NArgs, V) :-
 	variabilise_last(Arg2.Args, Arg, NArgs, V).
 
-match_probability([p(V0=C)=Prob|_], C, V, Prob) :-
-	V0 == V,
-	!.
-match_probability([_|Probs], C, V, Prob) :-
-	match_probability(Probs, C, V, Prob).
+match_probability(VPs, Goal, C, V, Prob) :-
+    match_probabilities(VPs, Goal, C, V, Prob).
+
+match_probabilities([p(V0=C)=Prob|_], _, C, V, Prob) :-
+    V0 == V,
+    !.
+match_probabilities([_|Probs], G, C, V, Prob) :-
+    match_probabilities(Probs, G, C, V, Prob).
+
+goal_to_key(_:Goal, Skolem) :-
+    goal_to_key(Goal, Skolem).
+goal_to_key(Goal, Skolem) :-
+    functor(Goal, Na, Ar),
+    Ar1 is Ar-1,
+    functor(Skolem, Na, Ar1).
 
 :- use_parfactors(on) -> true ; assert(use_parfactors(off)).
 

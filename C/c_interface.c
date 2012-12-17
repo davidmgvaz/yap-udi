@@ -2255,14 +2255,12 @@ YAP_AtomToPred(Atom at)
 X_API PredEntry *
 YAP_FunctorToPredInModule(Functor func, Term mod)
 {
-  CACHE_REGS
   return RepPredProp(PredPropByFunc(func, mod));
 }
 
 X_API PredEntry *
 YAP_AtomToPredInModule(Atom at, Term mod)
 {
-  CACHE_REGS
   return RepPredProp(PredPropByAtom(at, mod));  
 }
 
@@ -2433,7 +2431,6 @@ YAP_RunGoal(Term t)
     B = B->cp_b;
     LOCAL_AllowRestart = FALSE;
   }
-  
 
   RECOVER_MACHINE_REGS();
   return out;
@@ -2562,12 +2559,14 @@ YAP_RestartGoal(void)
   if (LOCAL_AllowRestart) {
     P = (yamop *)FAILCODE;
     LOCAL_PrologMode = UserMode;
+    // exec_absmi destroys slots on top of stack....
+    Yap_CloseSlots( PASS_REGS1 );
     out = Yap_exec_absmi(TRUE);
     LOCAL_PrologMode = UserCCallMode;
     if (out == FALSE) {
       /* cleanup */
-      Yap_CloseSlots( PASS_REGS1 );
       Yap_trust_last();
+      Yap_CloseSlots( PASS_REGS1 );
       LOCAL_AllowRestart = FALSE;
     }
   } else { 
@@ -2700,12 +2699,12 @@ X_API void
 YAP_ClearExceptions(void)
 {
   CACHE_REGS
-  Yap_ResetExceptionTerm();
+
   if (EX) {
     LOCAL_BallTerm = EX;
   }
   EX = NULL;
-  Yap_ResetExceptionTerm();    
+  Yap_ResetExceptionTerm( 0 );    
   LOCAL_UncaughtThrow = FALSE;
 }
 
@@ -3066,13 +3065,13 @@ YAP_Init(YAP_init_args *yap_init)
   GLOBAL_AllowGlobalExpansion = TRUE;
   GLOBAL_AllowLocalExpansion = TRUE;
   GLOBAL_AllowTrailExpansion = TRUE;
-  Yap_InitExStacks (Trail, Stack);
+  Yap_InitExStacks (0, Trail, Stack);
   if (yap_init->QuietMode) {
     yap_flags[QUIET_MODE_FLAG] = TRUE;
   }
 
   { BACKUP_MACHINE_REGS();
-    Yap_InitYaamRegs();
+    Yap_InitYaamRegs( 0 );
 
 #if HAVE_MPE
     Yap_InitMPE ();
@@ -3112,10 +3111,10 @@ YAP_Init(YAP_init_args *yap_init)
 	In the SBA we cannot just happily inherit registers
 	from the other workers
       */
-      Yap_InitYaamRegs();
+      Yap_InitYaamRegs( 0 );
 #endif /* YAPOR_COPY || YAPOR_SBA */
 #ifndef YAPOR_THREADS
-      Yap_InitPreAllocCodeSpace();
+      Yap_InitPreAllocCodeSpace( 0 );
 #endif /* YAPOR_THREADS */
       /* slaves, waiting for work */
       CurrentModule = USER_MODULE;
@@ -3191,7 +3190,7 @@ YAP_Init(YAP_init_args *yap_init)
       /* first, initialise the saved state */
       Term t_goal = MkAtomTerm(AtomInitProlog);
       YAP_RunGoalOnce(t_goal);
-      Yap_InitYaamRegs();
+      Yap_InitYaamRegs( 0 );
       /* reset stacks */
       return YAP_BOOT_FROM_SAVED_CODE;
     } else {
@@ -3225,7 +3224,7 @@ YAP_Init(YAP_init_args *yap_init)
       goal = Yap_MkApplTerm(fgoal, 1, as);
       YAP_RunGoalOnce(goal);
       /* reset stacks */
-      Yap_InitYaamRegs();
+      Yap_InitYaamRegs( 0 );
     }
     Yap_PutValue(Yap_FullLookupAtom("$live"), MkAtomTerm (Yap_FullLookupAtom("$true")));
   }
@@ -3296,6 +3295,9 @@ X_API int
 YAP_Reset(void)
 {
   CACHE_REGS
+#ifndef THREADS
+  int worker_id = 0;
+#endif
   BACKUP_MACHINE_REGS();
 
   /* first, backtrack to the root */
@@ -3306,13 +3308,13 @@ YAP_Reset(void)
     if (Yap_exec_absmi(0) != 0) {
       GLOBAL_Initialised = TRUE;
 
-      Yap_InitYaamRegs();
+      Yap_InitYaamRegs( worker_id );
       RECOVER_MACHINE_REGS();
       return FALSE;
     }
   }
   /* reinitialise the engine */
-  Yap_InitYaamRegs();
+  Yap_InitYaamRegs( worker_id );
   GLOBAL_Initialised = TRUE;
 
   RECOVER_MACHINE_REGS();
@@ -3532,7 +3534,7 @@ YAP_ThreadAttachEngine( int wid)
 #else
   return FALSE;
 #endif
-} 
+}
 
 X_API int
 YAP_ThreadDetachEngine(int wid)

@@ -21,7 +21,9 @@ Va <- P*X1*Y1 + Q*X2*Y2 + ...
           [bdd/3,
            set_solver_parameter/2,
            init_bdd_solver/4,
+           init_bdd_ground_solver/5,
            run_bdd_solver/3,
+           run_bdd_ground_solver/3,
            finalize_bdd_solver/1,
 	   check_if_bdd_done/1,
 	   call_bdd_ground_solver/6
@@ -75,6 +77,18 @@ Va <- P*X1*Y1 + Q*X2*Y2 + ...
 :- dynamic bdds/1.
 %bdds(ddnnf).
 bdds(bdd).
+
+%
+% QVars: all query variables?
+% 
+% 
+init_bdd_ground_solver(QueryKeys, AllKeys, Factors, Evidence, bdd(QueryKeys, AllKeys, Factors, Evidence)).
+
+%
+% just call horus solver.
+%
+run_bdd_ground_solver(_QueryVars, Solutions, bdd(GKeys, Keys, Factors, Evidence) ) :- !,
+	call_bdd_ground_solver_for_probabilities(GKeys, Keys, Factors, Evidence, Solutions).
 
 check_if_bdd_done(_Var).
 
@@ -137,7 +151,7 @@ order_vars([V|AllVars], I0) :-
 
 
 init_tops([],[]).
-init_tops(_.Leaves,_.Tops) :-
+init_tops([_|Leaves],[_|Tops]) :-
 	init_tops(Leaves,Tops).
 
 sort_keys(AllFs, AllVars, Leaves) :-
@@ -147,54 +161,54 @@ sort_keys(AllFs, AllVars, Leaves) :-
     dgraph_top_sort(Graph, AllVars).
 
 add_node(f([K|Parents],_,_,_), Graph0, Graph) :-
-	dgraph_add_vertex(Graph0, K, Graph1), 
-	foldl(add_edge(K), Parents, Graph1, Graph).
+    dgraph_add_vertex(Graph0, K, Graph1), 
+    foldl(add_edge(K), Parents, Graph1, Graph).
     
 add_edge(K, K0, Graph0, Graph) :-
     dgraph_add_edge(Graph0, K0, K, Graph).
 
 sort_vars(AllVars0, AllVars, Leaves) :-
-	dgraph_new(Graph0),
-	build_graph(AllVars0, Graph0, Graph),
-	dgraph_leaves(Graph, Leaves),
-	dgraph_top_sort(Graph, AllVars).
+    dgraph_new(Graph0),
+    build_graph(AllVars0, Graph0, Graph),
+    dgraph_leaves(Graph, Leaves),
+    dgraph_top_sort(Graph, AllVars).
 
 build_graph([], Graph, Graph).
-build_graph(V.AllVars0, Graph0, Graph) :-
-	clpbn:get_atts(V, [dist(_DistId, Parents)]), !,
-	dgraph_add_vertex(Graph0, V, Graph1), 
-	add_parents(Parents, V, Graph1, GraphI),
-	build_graph(AllVars0, GraphI, Graph).
+build_graph([V|AllVars0], Graph0, Graph) :-
+    clpbn:get_atts(V, [dist(_DistId, Parents)]), !,
+    dgraph_add_vertex(Graph0, V, Graph1), 
+    add_parents(Parents, V, Graph1, GraphI),
+    build_graph(AllVars0, GraphI, Graph).
 build_graph(_V.AllVars0, Graph0, Graph) :-
-	build_graph(AllVars0, Graph0, Graph).
+    build_graph(AllVars0, Graph0, Graph).
 
 add_parents([], _V, Graph, Graph).
-add_parents(V0.Parents, V, Graph0, GraphF) :-
-	dgraph_add_edge(Graph0, V0, V, GraphI), 
-	add_parents(Parents, V, GraphI, GraphF).
+add_parents([V0|Parents], V, Graph0, GraphF) :-
+    dgraph_add_edge(Graph0, V0, V, GraphI), 
+    add_parents(Parents, V, GraphI, GraphF).
 
 get_keys_info([], _, _, _, Vs, Vs, Ps, Ps, _, _) --> [].
 get_keys_info([V|MoreVs], Evs, Fs, OrderVs, Vs, VsF, Ps, PsF, Lvs, Outs) -->
-	{ rb_lookup(V, F, Fs) }, !,
-	{ F = f([V|Parents], _, _, DistId) },
+    { rb_lookup(V, F, Fs) }, !,
+    { F = f([V|Parents], _, _, DistId) },
 %{writeln(v:DistId:Parents)},
-	[DIST],
-	{  get_key_info(V, F, Fs, Evs, OrderVs, DistId, Parents, Vs, Vs2, Ps, Ps1, Lvs, Outs, DIST) },
-	get_keys_info(MoreVs, Evs, Fs, OrderVs, Vs2, VsF, Ps1, PsF, Lvs, Outs).
+    [DIST],
+    {  get_key_info(V, F, Fs, Evs, OrderVs, DistId, Parents, Vs, Vs2, Ps, Ps1, Lvs, Outs, DIST) },
+    get_keys_info(MoreVs, Evs, Fs, OrderVs, Vs2, VsF, Ps1, PsF, Lvs, Outs).
 
 get_key_info(V, F, Fs, Evs, OrderVs, DistId, Parents0, Vs, Vs2, Ps, Ps1, Lvs, Outs, DIST) :-
-	reorder_keys(Parents0, OrderVs, Parents, Map),
-	check_key_p(DistId, F, Map, Parms, _ParmVars, Ps, Ps1),
-	unbound_parms(Parms, ParmVars),
-	F = f(_,[Size|_],_,_),
-	check_key(V, Size, DIST, Vs, Vs1),
-	DIST = info(V, Tree, Ev, Values, Formula, ParmVars, Parms),
-	% get a list of form [[P00,P01], [P10,P11], [P20,P21]]
-	foldl(get_key_parent(Fs), Parents, PVars, Vs1, Vs2),
-	cross_product(Values, Ev, PVars, ParmVars, Formula0),
+    reorder_keys(Parents0, OrderVs, Parents, Map),
+    check_key_p(DistId, F, Map, Parms, _ParmVars, Ps, Ps1),
+    unbound_parms(Parms, ParmVars),
+    F = f(_,[Size|_],_,_),
+    check_key(V, Size, DIST, Vs, Vs1),
+    DIST = info(V, Tree, Ev, Values, Formula, ParmVars, Parms),
+    % get a list of form [[P00,P01], [P10,P11], [P20,P21]]
+    foldl(get_key_parent(Fs), Parents, PVars, Vs1, Vs2),
+    cross_product(Values, Ev, PVars, ParmVars, Formula0),
 %	(numbervars(Formula0,0,_),writeln(formula0:Ev:Formula0), fail ; true),
-	get_key_evidence(V, Evs, DistId, Tree, Ev, Formula0, Formula, Lvs, Outs).
-%,	(numbervars(Formula,0,_),writeln(formula:Formula), fail ; true)
+    get_key_evidence(V, Evs, DistId, Tree, Ev, Formula0, Formula, Lvs, Outs).
+%	(numbervars(Formula,0,_),writeln(formula:Formula), fail ; true).
 
 get_vars_info([], Vs, Vs, Ps, Ps, _, _) --> [].
 get_vars_info([V|MoreVs], Vs, VsF, Ps, PsF, Lvs, Outs) -->
@@ -776,7 +790,7 @@ parents_to_conj(Ps, Theta, Theta*Conj) :-
 	parents_to_conj2(Ps, Conj).
 
 parents_to_conj2([P],P) :- !.
-parents_to_conj2(P.Ps,P*Conj) :-
+parents_to_conj2([P|Ps],P*Conj) :-
 	parents_to_conj2(Ps,Conj).
 
 %
@@ -829,10 +843,10 @@ get_evidence(V, Tree, _Values, F0, F1, Leaves, Finals) :-
 	get_outs(F0, F1, SendOut, Outs).
 
 zero_pos(_, _Pos, []).
-zero_pos(Pos, Pos, 1.Values) :- !, 
+zero_pos(Pos, Pos, [1|Values]) :- !, 
 	I is Pos+1,
 	zero_pos(I, Pos, Values).
-zero_pos(I0, Pos, 0.Values) :- 
+zero_pos(I0, Pos, [0|Values]) :- 
 	I is I0+1,
 	zero_pos(I, Pos, Values).
 
@@ -852,13 +866,13 @@ insert_output(_.Leaves, V, _.Finals, Top, Outs, SendOut) :-
 get_outs([V=F], [V=NF|End], End,  V) :- !,
 %	writeln(f0:F),
 	simplify_exp(F,NF).
-get_outs((V=F).Outs, (V=NF).NOuts, End, (F0 + V)) :-
+get_outs([(V=F)|Outs], [(V=NF)|NOuts], End, (F0 + V)) :-
 %	writeln(f0:F),
 	simplify_exp(F,NF),
 	get_outs(Outs, NOuts, End, F0).
 
 eval_outs([]).
-eval_outs((V=F).Outs) :-
+eval_outs([(V=F)|Outs]) :-
 	simplify_exp(F,NF),
 	V = NF,
 	eval_outs(Outs).
@@ -870,28 +884,29 @@ run_solver(Qs, LLPs, bdd(Term, Leaves, Nodes, Hash, Id)) :-
 	     run_bdd_solver([Q],LPs,bdd(Term,Leaves,Nodes))),
 	    LLPs).
 
-run_bdd_solver([[V]], LPs, bdd(Term, _Leaves, Nodes)) :-
+run_bdd_solver([Vs], LPs, bdd(Term, _Leaves, Nodes)) :-
 	build_out_node(Nodes, Node),
-	findall(Prob, get_prob(Term, Node, V, Prob),TermProbs),
+	findall(Prob, get_prob(Term, Node, Vs, Prob),TermProbs),
 	sumlist(TermProbs, Sum),
 	normalise(TermProbs, Sum, LPs).
 
+% output node for BDDs
 build_out_node([_Top], []).
-build_out_node([T,T1|Tops], [Top = T*Top]) :-
-	build_out_node2(T1.Tops, Top).
+build_out_node([T,T1|Tops], [_Top = T*NTop]) :-
+	build_out_node2([T1|Tops], NTop).
 
 build_out_node2([Top], Top).
 build_out_node2([T,T1|Tops], T*Top) :-
 	build_out_node2(T1.Tops, Top).
 
 
-get_prob(Term, _Node, V, SP) :-
+get_prob(Term, _Node, Vs, SP) :-
 	bdds(ddnnf), !,
-	all_cnfs(Term, CNF, IVs, Indics, V, AllParms, AllParmValues),
+	all_cnfs(Term, CNF, IVs, Indics, Vs, AllParms, AllParmValues),
 	build_cnf(CNF, IVs, Indics, AllParms, AllParmValues, SP).
-get_prob(Term, Node, V, SP) :-
+get_prob(Term, Node, Vs, SP) :-
 	bdds(bdd), !,
-	bind_all(Term, Node, Bindings, V, AllParms, AllParmValues),
+	bind_all(Term, Node, Bindings, Vs, AllParms, AllParmValues),
 %	reverse(AllParms, RAllParms),
 	term_variables(AllParms, NVs),
 	build_bdd(Bindings, NVs, AllParms, AllParmValues, Bdd),
@@ -908,22 +923,22 @@ build_bdd(Bindings, NVs, VTheta, Theta, Bdd) :-
 	VTheta = Theta.
 
 bind_all([], End, End, _V, [], []).
-bind_all([info(V, _Tree, Ev, _Values, Formula, ParmVars, Parms)|Term], End, BindsF, V0, ParmVars.AllParms, Parms.AllTheta) :-
-	V0 == V, !,
+bind_all([info(V, _Tree, Ev, _Values, Formula, ParmVars, Parms)|Term], End, BindsF, V0s, ParmVars.AllParms, Parms.AllTheta) :-
+	v_in(V, V0s), !,
 	set_to_one_zeros(Ev),
 	bind_formula(Formula, BindsF, BindsI),
-	bind_all(Term, End, BindsI, V0, AllParms, AllTheta).
-bind_all([info(_V, _Tree, Ev, _Values, Formula, ParmVars, Parms)|Term], End, BindsF, V0, ParmVars.AllParms, Parms.AllTheta) :-
+	bind_all(Term, End, BindsI, V0s, AllParms, AllTheta).
+bind_all([info(_V, _Tree, Ev, _Values, Formula, ParmVars, Parms)|Term], End, BindsF, V0s, ParmVars.AllParms, Parms.AllTheta) :-
 	set_to_ones(Ev),!,
 	bind_formula(Formula, BindsF, BindsI),
-	bind_all(Term, End, BindsI, V0, AllParms, AllTheta).
+	bind_all(Term, End, BindsI, V0s, AllParms, AllTheta).
 % evidence: no need to add any stuff.
-bind_all([info(_V, _Tree, _Ev, _Values, Formula, ParmVars, Parms)|Term], End, BindsF, V0, ParmVars.AllParms, Parms.AllTheta) :-
+bind_all([info(_V, _Tree, _Ev, _Values, Formula, ParmVars, Parms)|Term], End, BindsF, V0s, ParmVars.AllParms, Parms.AllTheta) :-
 	bind_formula(Formula, BindsF, BindsI),
-	bind_all(Term, End, BindsI, V0, AllParms, AllTheta).
+	bind_all(Term, End, BindsI, V0s, AllParms, AllTheta).
 
 bind_formula([], L, L).
-bind_formula(B.Formula, B.BsF, Bs0) :-
+bind_formula([B|Formula], [B|BsF], Bs0) :-
 	bind_formula(Formula, BsF, Bs0).
 
 set_to_one_zeros([1|Values]) :-
@@ -932,44 +947,48 @@ set_to_one_zeros([0|Values]) :-
 	set_to_one_zeros(Values).
 
 set_to_zeros([]).
-set_to_zeros(0.Values) :-
+set_to_zeros([0|Values]) :-
 	set_to_zeros(Values).
 
 set_to_ones([]).
-set_to_ones(1.Values) :-
+set_to_ones([1|Values]) :-
 	set_to_ones(Values).
 
 normalise([], _Sum, []).
-normalise(P.TermProbs, Sum, NP.LPs) :-
+normalise([P|TermProbs], Sum, [NP|LPs]) :-
 	NP is P/Sum,
 	normalise(TermProbs, Sum, LPs).
 
 finalize_bdd_solver(_).
 
 all_cnfs([], [], [], [], _V, [], []).
-all_cnfs([info(V, Tree, Ev, Values, Formula, ParmVars, Parms)|Term], BindsF, IVars, Indics, V0, AllParmsF, AllThetaF) :-
+all_cnfs([info(V, Tree, Ev, Values, Formula, ParmVars, Parms)|Term], BindsF, IVars, Indics, V0s, AllParmsF, AllThetaF) :-
 %writeln(f:Formula),
-	V0 == V, !,
+	v_in(V, V0s), !,
 	set_to_one_zeros(Ev),
 	all_indicators(Values, BindsF, Binds0),
 	indicators(Values, [], Ev, IVars, IVarsI, Indics, IndicsI, Binds0, Binds1),
 	parms( ParmVars, Parms, AllParmsF, AllThetaF, AllParms, AllTheta),
 	parameters(Formula, Tree, Binds1, BindsI),
-	all_cnfs(Term, BindsI, IVarsI, IndicsI, V0, AllParms, AllTheta).
-all_cnfs([info(_V, Tree, Ev, Values, Formula, ParmVars, Parms)|Term], BindsF, IVars, Indics, V0, AllParmsF, AllThetaF) :-
+	all_cnfs(Term, BindsI, IVarsI, IndicsI, V0s, AllParms, AllTheta).
+all_cnfs([info(_V, Tree, Ev, Values, Formula, ParmVars, Parms)|Term], BindsF, IVars, Indics, V0s, AllParmsF, AllThetaF) :-
 	set_to_ones(Ev),!,
 	all_indicators(Values, BindsF, Binds0),
 	indicators(Values, [], Ev, IVars, IVarsI, Indics, IndicsI, Binds0, Binds1),
 	parms( ParmVars, Parms, AllParmsF, AllThetaF, AllParms, AllTheta),
 	parameters(Formula, Tree, Binds1, BindsI),
-	all_cnfs(Term, BindsI, IVarsI, IndicsI, V0, AllParms, AllTheta).
+	all_cnfs(Term, BindsI, IVarsI, IndicsI, V0s, AllParms, AllTheta).
 % evidence: no need to add any stuff.
-all_cnfs([info(_V, Tree, Ev, Values, Formula, ParmVars, Parms)|Term], BindsF, IVars, Indics, V0, AllParmsF, AllThetaF) :-
+all_cnfs([info(_V, Tree, Ev, Values, Formula, ParmVars, Parms)|Term], BindsF, IVars, Indics, V0s, AllParmsF, AllThetaF) :-
 	all_indicators(Values, BindsF, Binds0),
 	indicators(Values, [], Ev, IVars, IVarsI, Indics, IndicsI, Binds0, Binds1),
 	parms( ParmVars, Parms, AllParmsF, AllThetaF, AllParms, AllTheta),
 	parameters(Formula, Tree, Binds1, BindsI),
-	all_cnfs(Term, BindsI, IVarsI, IndicsI, V0, AllParms, AllTheta).
+	all_cnfs(Term, BindsI, IVarsI, IndicsI, V0s, AllParms, AllTheta).
+
+v_in(V, [V0|_]) :- V == V0, !.
+v_in(V, [_|Vs]) :-
+    v_in(V, Vs).
 
 all_indicators(Values) -->
 	{ values_to_disj(Values, Disj) },

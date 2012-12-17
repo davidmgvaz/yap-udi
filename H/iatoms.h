@@ -226,6 +226,7 @@
   AtomQuiet = Yap_LookupAtom("quiet");
   AtomRadix = Yap_LookupAtom("radix");
   AtomRandom = Yap_LookupAtom("random");
+  AtomRange = Yap_LookupAtom("range");
   AtomRead = Yap_LookupAtom("read");
   AtomReadutil = Yap_LookupAtom("readutil");
   AtomRecordedP = Yap_FullLookupAtom("$recordep");
@@ -289,6 +290,7 @@
   AtomSystemLibraryDir = Yap_LookupAtom("system_library_directory");
   AtomTerm = Yap_LookupAtom("term");
   AtomTerms = Yap_LookupAtom("terms");
+  AtomTermExpansion = Yap_LookupAtom("term_expansion");
   AtomTextStream = Yap_LookupAtom("text_stream");
   AtomThreads = Yap_LookupAtom("threads");
   AtomThrow = Yap_LookupAtom("throw");
@@ -384,6 +386,7 @@
   FunctorGPrimitive = Yap_MkFunctor(AtomPrimitive,1);
   FunctorGVar = Yap_MkFunctor(AtomGVar,1);
   FunctorGeneratePredInfo = Yap_MkFunctor(AtomGeneratePredInfo,4);
+  FunctorGoalExpansion2 = Yap_MkFunctor(AtomGoalExpansion,2);
   FunctorGoalExpansion = Yap_MkFunctor(AtomGoalExpansion,3);
   FunctorHandleThrow = Yap_MkFunctor(AtomHandleThrow,3);
   FunctorId = Yap_MkFunctor(AtomId,1);
@@ -423,6 +426,7 @@
   FunctorStreamPos = Yap_MkFunctor(AtomStreamPos,4);
   FunctorSyntaxError = Yap_MkFunctor(AtomSyntaxError,7);
   FunctorShortSyntaxError = Yap_MkFunctor(AtomSyntaxError,1);
+  FunctorTermExpansion = Yap_MkFunctor(AtomTermExpansion,2);
   FunctorThreadRun = Yap_MkFunctor(AtomTopThreadGoal,2);
   FunctorThrow = Yap_MkFunctor(AtomThrow,1);
   FunctorTimeoutError = Yap_MkFunctor(AtomTimeoutError,2);

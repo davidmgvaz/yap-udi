@@ -118,6 +118,18 @@ yap_flag(agc_margin,Margin) :-
 %
 % SWI compatibility flag
 %
+yap_flag(debug_on_error,X) :-
+	var(X), !,
+	X = false.
+yap_flag(debug_on_error,true) :- !,
+	X = true,
+	'$do_error'(domain_error(flag_value,debug_on_error+X),yap_flag(debug_on_error,X)).
+yap_flag(debug_on_error,false) :- !.
+yap_flag(debug_on_error,X) :-
+	'$do_error'(domain_error(flag_value,debug_on_error+X),yap_flag(debug_on_error,X)).
+
+
+
 yap_flag(generate_debug_info,X) :-
 	var(X), !,
         '$access_yap_flags'(18,Options),
@@ -647,7 +659,7 @@ yap_flag(update_semantics,X) :-
 
 yap_flag(toplevel_hook,G) :-
 	var(G), !,
-	( recorded('$toplevel_hooks',G,_) -> G ; G = false ).
+	( recorded('$toplevel_hooks',G,_) -> G ; G = fail ).
 yap_flag(toplevel_hook,G) :- !,
 	'$set_toplevel_hook'(G).
 
@@ -830,6 +842,7 @@ yap_flag(dialect,yap).
 '$yap_system_flag'(character_escapes).
 '$yap_system_flag'(chr_toplevel_show_store).
 '$yap_system_flag'(debug).
+'$yap_system_flag'(debug_on_error    ).
 '$yap_system_flag'(debugger_print_options).
 '$yap_system_flag'(dialect).
 '$yap_system_flag'(discontiguous_warnings).
@@ -1007,15 +1020,12 @@ set_prolog_flag(F,V) :-
 set_prolog_flag(F,V) :-
 	var(V), !,
 	'$do_error'(instantiation_error,set_prolog_flag(F,V)).
-set_prolog_flag(F, Val) :-
-	prolog:'$user_defined_flag'(F,_,_,_), !,
-	yap_flag(F, Val).
 set_prolog_flag(F,V) :-
 	\+ atom(F), !,
 	'$do_error'(type_error(atom,F),set_prolog_flag(F,V)).
 set_prolog_flag(F, Val) :-
-	prolog:'$user_defined_flag'(F,_,_,_), !,
-	yap_flag(F, Val).
+	'$swi_current_prolog_flag'(F, _),
+	'$swi_set_prolog_flag'(F, Val).
 set_prolog_flag(F,V) :-
 	'$yap_system_flag'(F), !,
 	yap_flag(F,V).

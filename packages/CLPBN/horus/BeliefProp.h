@@ -5,7 +5,7 @@
 #include <vector>
 #include <sstream>
 
-#include "Solver.h"
+#include "GroundSolver.h"
 #include "Factor.h"
 #include "FactorGraph.h"
 #include "Util.h"
@@ -83,7 +83,7 @@ class SPNodeInfo
 };
 
 
-class BeliefProp : public Solver
+class BeliefProp : public GroundSolver
 {
   public:
     BeliefProp (const FactorGraph&);
@@ -112,7 +112,7 @@ class BeliefProp : public Solver
     virtual Params getJointByConditioning (const VarIds&) const;
 
   public:
-    Params getFactorJoint (size_t fnIdx, const VarIds&);
+    Params getFactorJoint (FacNode* fn, const VarIds&);
 
   protected:
     SPNodeInfo* ninf (const VarNode* var) const

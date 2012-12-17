@@ -231,6 +231,7 @@ A	Queue			N	"queue"
 A	Quiet			N	"quiet"
 A	Radix			N	"radix"
 A	Random			N	"random"
+A	Range			N	"range"
 A	Read			N	"read"
 A	Readutil		N	"readutil"
 A	RecordedP		F	"$recordep"
@@ -294,6 +295,7 @@ A	SystemError		N	"system_error"
 A	SystemLibraryDir	N	"system_library_directory"
 A	Term			N	"term"
 A	Terms			N	"terms"
+A	TermExpansion		N	"term_expansion"
 A	TextStream		N	"text_stream"
 A	Threads			N	"threads"
 A	Throw			N	"throw"
@@ -389,6 +391,7 @@ F	GNumber			Number		1
 F	GPrimitive		Primitive	1
 F	GVar			GVar		1
 F	GeneratePredInfo	GeneratePredInfo	4
+F	GoalExpansion2		GoalExpansion	2
 F	GoalExpansion		GoalExpansion	3
 F	HandleThrow		HandleThrow	3
 F	Id			Id		1
@@ -428,6 +431,7 @@ F	StreamEOS		EndOfStream	1
 F	StreamPos		StreamPos	4
 F	SyntaxError		SyntaxError	7
 F	ShortSyntaxError	SyntaxError	1
+F	TermExpansion		TermExpansion	2
 F	ThreadRun		TopThreadGoal	2
 F	Throw			Throw		1
 F	TimeoutError		TimeoutError	2

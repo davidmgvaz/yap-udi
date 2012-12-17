@@ -6,7 +6,7 @@ bool CountingBp::checkForIdenticalFactors = true;
 
 
 CountingBp::CountingBp (const FactorGraph& fg)
-    : Solver (fg), freeColor_(0)
+    : GroundSolver (fg), freeColor_(0)
 {
   findIdenticalFactors();
   setInitialColors();
@@ -74,14 +74,16 @@ CountingBp::solveQuery (VarIds queryVids)
       cout << endl;
     }
     if (idx == facNodes.size()) {
-      res = Solver::getJointByConditioning (
-          GroundSolver::CBP, fg, queryVids);
+      res = GroundSolver::getJointByConditioning (
+          GroundSolverType::CBP, fg, queryVids);
     } else {
       VarIds reprArgs;
       for (size_t i = 0; i < queryVids.size(); i++) {
         reprArgs.push_back (getRepresentative (queryVids[i]));
       }
-      res = solver_->getFactorJoint (idx, reprArgs);
+      FacNode* reprFac = getRepresentative (facNodes[idx]);
+      assert (reprFac != 0);
+      res = solver_->getFactorJoint (reprFac, reprArgs);
     }
   }
   return res;

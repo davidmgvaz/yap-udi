@@ -1703,6 +1703,14 @@ if they have not been loaded before, does nothing otherwise.
 
 @var{F} must be a list containing the names of the files to load.
 
+@item load_db(@var{+Files})
+@findex load_db/1
+@syindex load_db/1
+@cnindex load_db/1
+@noindent
+Load a database of facts with equal structure. Useful when wanting to
+read in a very compact way database tables.
+
 @item make
 @findex make/0
 @snindex make/0
@@ -1817,6 +1825,14 @@ Make hidden atom @var{Atom} visible.
 @cnindex hide_predicate/1
 Make predicate @var{Pred} invisible to @code{current_predicate/2},
 @code{listing}, and friends.
+
+@item stash_predicate(+@var{Pred})
+@findex stash_predicate/1
+@snindex stash_predicate/1
+@cnindex stash_predicate/1
+Make predicate @var{Pred} invisible to new code, and to @code{current_predicate/2},
+@code{listing}, and friends. New predicates with the same name and
+functor can be declared.
 
 @item expand_exprs(-@var{O},+@var{N})
 @findex expand_exprs/2
@@ -2358,7 +2374,8 @@ Add predicates to the public list of the context module. This implies
 the predicate will be imported into another module if this module is
 imported with @code{use_module/[1,2]}. Note that predicates are normally
 exported using the directive @code{module/2}. @code{export/1} is meant
-to handle export from dynamically created modules.
+to handle export from dynamically created modules. The directive argument
+may also be a list of predicates.
 
 @item export_list(?@var{Mod},?@var{ListOfPredicateIndicator})
 @findex export_list/2
@@ -3343,6 +3360,12 @@ Replace every @code{'$VAR'(@var{I})} by a free variable.
 @cnindex ground/1
 Succeeds if there are no free variables in the term @var{T}.
 
+@item acyclic_term(@var{T}) [ISO]
+@findex acyclic_term/1
+@snindex acyclic_term/1
+@cnindex acyclic_term/1
+Succeeds if there are loops in the term @var{T}, that is, it is an infite term.
+
 @item arg(+@var{N},+@var{T},@var{A}) [ISO]
 @findex arg/3
 @syindex arg/3
@@ -3478,12 +3501,6 @@ variable in @var{Subsumer}.
 Succeed if @var{Subsumer} unifies with the least general
 generalization over @var{T1} and
 @var{T2}.
-
-@item acyclic_term(?@var{Term}) [ISO]
-@findex cyclic_term/1
-@syindex cyclic_term/1
-@cnindex cyclic_term/1
-Succeed if the argument @var{Term} is an acyclic term.
 
 @item term_variables(?@var{Term}, -@var{Variables}) [ISO]
 @findex  term_variables/2
@@ -4615,10 +4632,10 @@ If @code{first} (default), the predicates leaves no choice-point.
 Otherwise a choice-point will be left and backtracking may yield
 more solutions.
 
-@c     @item expand(@code{true}/@code{false})
-@c If @code{true} (default is @code{false}) and @var{Spec} is atomic,
-@c call @code{expand_file_name/2} followed by @code{member/2} on @var{Spec} before
-@c proceeding.  This is a SWI-Prolog extension.
+ @item expand(@code{true}/@code{false})
+ If @code{true} (default is @code{false}) and @var{Spec} is atomic,
+ call @code{expand_file_name/2} followed by @code{member/2} on @var{Spec} before
+ proceeding.  This is originally a SWI-Prolog extension.
 @end table
 
 @c The Prolog flag @code{verbose_file_search} can be set to @code{true}
@@ -9667,6 +9684,15 @@ applying the predicate @var{Pred} to all list elements on which
       Calls @var{Pred} on all elements of @code{List} and collects a
 result in @var{X}, @var{Y} and @var{Z}.
 
+@item foldl3(:@var{Pred}, +@var{List1}, ?@var{List2}, ?@var{X0},
+?@var{X}, ?@var{Y0}, ?@var{Y}, ?@var{Z0}, ?@var{Z}, ?@var{W0}, ?@var{W})
+
+@findex foldl4/8
+@snindex foldl4/8
+@cnindex foldl4/8
+      Calls @var{Pred} on all elements of @code{List} and collects a
+result in @var{X}, @var{Y}, @var{Z} and @var{W}.
+
 @item scanl(:@var{Pred}, +@var{List}, +@var{V0}, ?@var{Values})
 @findex scanl/4
 @snindex scanl/4
@@ -11906,7 +11932,7 @@ efficiency. They are available through the
 @findex cyclic_term/1
 @syindex cyclic_term/1
 @cnindex cyclic_term/1
-Succeed if the argument @var{Term} is a cyclic term.
+Succeed if the argument @var{Term} is not a cyclic term.
 
 @item term_hash(+@var{Term}, ?@var{Hash})
 @findex  term_hash/2

@@ -83,6 +83,7 @@ INLINE_ONLY inline EXTERN void restore_B(void);
 INLINE_ONLY inline EXTERN void save_B(void);
 
 #define CACHE_REGS
+#define REFRESH_CACHE_REGS
 #define INIT_REGS
 #define PASS_REGS1 
 #define PASS_REGS
@@ -107,10 +108,10 @@ typedef struct regstore_t
     yamop *CP_;			/* 28 continuation program counter            */
     CELL  *ENV_;		/* 1 current environment                      */
 #ifdef CUT_C
-    cut_c_str_ptr CUT_C_TOP;
+    struct cut_c_str *CUT_C_TOP;
 #endif
 #if defined CUT_C && (defined MYDDAS_ODBC || defined MYDDAS_MYSQL)
-    MYDDAS_GLOBAL MYDDAS_GLOBAL_POINTER;
+    struct myddas_global *MYDDAS_GLOBAL_POINTER;
 #endif
     yamop *P_;			/* 7 prolog machine program counter           */
     CELL  *YENV_;		/* 5 current environment (may differ from ENV)*/
@@ -182,12 +183,14 @@ extern Term Yap_XREGS[MaxTemps];	/* 29                                     */
 extern pthread_key_t Yap_yaamregs_key;
 
 #undef CACHE_REGS
+#undef REFRESH_CACHE_REGS
 #undef INIT_REGS
 #undef PASS_REGS
 #undef PASS_REGS1
 #undef USES_REGS
 #undef USES_REGS1
 #define CACHE_REGS REGSTORE *regcache = ((REGSTORE *)pthread_getspecific(Yap_yaamregs_key));
+#define REFRESH_CACHE_REGS regcache = ((REGSTORE *)pthread_getspecific(Yap_yaamregs_key));
 #define INIT_REGS , ((REGSTORE *)pthread_getspecific(Yap_yaamregs_key))
 #define PASS_REGS1 regcache
 #define PASS_REGS , regcache

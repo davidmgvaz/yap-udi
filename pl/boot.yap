@@ -92,7 +92,6 @@ true :- true.
 	'$init_or_threads',
 	'$run_at_thread_start'.
 
-
 '$init_globals' :-
 	'$init_consult',
 	nb_setval('$chr_toplevel_show_store',false),
@@ -154,6 +153,7 @@ true :- true.
 
 /* main execution loop							*/
 '$read_toplevel'(Goal, Bindings) :-
+	'$pred_exists'(read_history(_,_,_,_,_,_), user),
 	'$swi_current_prolog_flag'(readline, true), !,
 	read_history(h, '!h',
                          [trace, end_of_file],
@@ -218,7 +218,7 @@ true :- true.
 	get_value('$top_level_goal',GA), GA \= [], !,
 	set_value('$top_level_goal',[]),
 	'$run_atom_goal'(GA),
-	set_value('$live','$false').
+	( '$pred_exists'(halt(_), user) -> halt(0) ; '$halt'(0) ).
 '$enter_top_level' :-
 	'$disable_docreep',
 	'$run_toplevel_hooks',
@@ -229,8 +229,7 @@ true :- true.
 	nb_setval('$debug_run',off),
 	nb_setval('$debug_jump',off),
 	'$command'(Command,Varnames,_Pos,top),
-	'$sync_mmapped_arrays',
-	set_value('$live','$false').
+	( '$pred_exists'(halt(_), user) -> halt(0) ; '$halt'(0) ).
 
 
  '$erase_sets' :- 
@@ -436,7 +435,7 @@ true :- true.
 	 ->
 	  '$assertz_dynamic'(L,G,G0,Mod)
 	 ;
-	  catch(nb_getval('$assert_all',on),_,fail)
+	  '$nb_getval'('$assert_all',on,fail)
 	 ->
 	  functor(H,N,A),
 	  '$dynamic'(N/A,Mod),
@@ -537,7 +536,7 @@ true :- true.
 	  yap_hacks:current_choice_point(NCP1),
 	  '$attributes':delayed_goals(G, V, NV, LGs),
 	  yap_hacks:current_choice_point(NCP2),
-	 '$clean_ifcp'(CP),
+	  '$clean_ifcp'(CP),
 	   NCP is NCP2-NCP1
 	  ;
 	   copy_term_nat(V, NV), 
@@ -573,7 +572,7 @@ true :- true.
         flush_output,
 	fail.
 '$present_answer'((?-), Answ) :-
-	nb_getval('$break',BL),
+	'$nb_getval'('$break',BL,fail),
 	( BL \= 0 -> 	format(user_error, '[~p] ',[BL]) ;
 			true ),
         ( recorded('$print_options','$toplevel'(Opts),_) ->
@@ -628,21 +627,22 @@ true :- true.
         '$write_vars_and_goals'(NLAnsw, first, FLAnsw).
 
 '$purge_dontcares'([],[]).
-'$purge_dontcares'([[[95|_]|_]|Vs],NVs) :- !,
+'$purge_dontcares'([Name=_|Vs],NVs) :- 
+	atom_codes(Name, [C|_]), C is "_", !,
 	'$purge_dontcares'(Vs,NVs).
 '$purge_dontcares'([V|Vs],[V|NVs]) :-
 	'$purge_dontcares'(Vs,NVs).
 
 
 '$prep_answer_var_by_var'([], L, L).
-'$prep_answer_var_by_var'([[Name|Value]|L], LF, L0) :- 
+'$prep_answer_var_by_var'([Name=Value|L], LF, L0) :- 
 	'$delete_identical_answers'(L, Value, NL, Names),
 	'$prep_answer_var'([Name|Names], Value, LF, LI),
 	'$prep_answer_var_by_var'(NL, LI, L0).
 
 % fetch all cases that have the same solution.
 '$delete_identical_answers'([], _, [], []).
-'$delete_identical_answers'([[Name|Value]|L], Value0, FL, [Name|Names]) :-
+'$delete_identical_answers'([(Name=Value)|L], Value0, FL, [Name|Names]) :-
 	Value == Value0, !,
 	'$delete_identical_answers'(L, Value0, FL, Names).
 '$delete_identical_answers'([VV|L], Value0, [VV|FL], Names) :-
@@ -678,11 +678,11 @@ true :- true.
 
 '$write_goal_output'(var([V|VL]), First, [var([V|VL])|L], next, L) :- !,
         ( First = first -> true ; format(user_error,',~n',[]) ),
-	format(user_error,'~s',[V]),
+	format(user_error,'~a',[V]),
 	'$write_output_vars'(VL).
 '$write_goal_output'(nonvar([V|VL],B), First, [nonvar([V|VL],B)|L], next, L) :- !,
         ( First = first -> true ; format(user_error,',~n',[]) ),
-	format(user_error,'~s',[V]),
+	format(user_error,'~a',[V]),
 	'$write_output_vars'(VL),
 	format(user_error,' = ', []),
         ( recorded('$print_options','$toplevel'(Opts),_) ->
@@ -731,9 +731,8 @@ true :- true.
 	'$name_vars_in_goals1'(GVL, 0, _).
 
 '$name_well_known_vars'([]).
-'$name_well_known_vars'([[SName|V]|NVL0]) :-
+'$name_well_known_vars'([Name=V|NVL0]) :-
 	var(V), !,
-	atom_codes(Name, SName),
 	V = '$VAR'(Name),
 	'$name_well_known_vars'(NVL0).
 '$name_well_known_vars'([_|NVL0]) :-
@@ -902,8 +901,8 @@ not(G) :-    \+ '$execute'(G).
 '$call'(G, CP, G0, CurMod) :-
 	( '$is_expand_goal_or_meta_predicate'(G,CurMod) ->
 	   (
-	     '$notrace'(user:goal_expansion(G, CurMod, NG)) ->
-	       '$call'(NG, CP, G0,CurMod)
+	     '$do_goal_expansion'(G, CurMod, NG) ->
+	     '$call'(NG, CP, G0,CurMod)
 	     ;
 	       % repeat other code.
              '$is_metapredicate'(G,CurMod) ->
@@ -995,39 +994,6 @@ not(G) :-    \+ '$execute'(G).
 	'$exit_undefp',
 	throw(Ball).
 
-
-/* This is the break predicate,
-	it saves the importante data about current streams and
-	debugger state */
-
-break :-
-	nb_getval('$system_mode',SystemMode),
-	nb_getval('$trace',Trace),
-	nb_setval('$trace',off),
-	nb_getval('$debug_jump',Jump),
-	nb_getval('$debug_run',Run),
-	'$debug_on'(Debug),
-	'$debug_on'(false),
-	nb_getval('$break',BL), NBL is BL+1,
-	nb_getval('$spy_gn',SPY_GN),
-	b_getval('$spy_glist',GList),
-	b_setval('$spy_glist',[]),
-	nb_setval('$break',NBL),
-	current_output(OutStream), current_input(InpStream),
-	format(user_error, '% Break (level ~w)~n', [NBL]),
-	'$do_live',
-	!,
-	set_value('$live','$true'),
-	b_setval('$spy_glist',GList),
-	nb_setval('$spy_gn',SPY_GN),
-	set_input(InpStream), 
-	set_output(OutStream),
-	'$debug_on'(Debug),
-	nb_setval('$debug_jump',Jump),
-	nb_setval('$debug_run',Run),
-	nb_setval('$trace',Trace),
-	nb_setval('$break',BL),
-	nb_setval('$system_mode',SystemMode).
 
 '$silent_bootstrap'(F) :-
 	'$init_globals',
@@ -1152,18 +1118,12 @@ bootstrap(F) :-
 	
 
 expand_term(Term,Expanded) :-
-	'$current_module'(Mod), 
-	( \+ '$undefined'(term_expansion(_,_), Mod),
-	  '$notrace'(Mod:term_expansion(Term,Expanded))
-        ; \+ '$undefined'(term_expansion(_,_), system),
-	  '$notrace'(system:term_expansion(Term,Expanded))
-        ;  Mod \= user, \+ '$undefined'(term_expansion(_,_), user),
-	  '$notrace'(user:term_expansion(Term,Expanded))
+	( '$do_term_expansion'(Term,Expanded)
+        ->
+	   true
         ;
 	  '$expand_term_grammar'(Term,Expanded)
-	),
-	!.
-
+	).
 
 %
 % Grammar Rules expansion
@@ -1171,15 +1131,6 @@ expand_term(Term,Expanded) :-
 '$expand_term_grammar'((A-->B), C) :-
 	'$translate_rule'((A-->B),C), !.
 '$expand_term_grammar'(A, A).
-
-%
-% Arithmetic expansion
-%
-'$expand_term_arith'(G1, G2) :-
-	get_value('$c_arith',true),
-	'$c_arith'(G1, G2), !.
-'$expand_term_arith'(G,G).
-
 
 %
 % Arithmetic expansion
@@ -1260,8 +1211,9 @@ catch_ball(Ball, V) :-
 catch_ball(C, C).
 
 '$run_toplevel_hooks' :-
-	nb_getval('$break',0),
-	recorded('$toplevel_hooks',H,_), !,
+	'$nb_getval'('$break', 0, fail),
+	recorded('$toplevel_hooks',H,_), 
+	H \= fail, !,
 	( '$oncenotrace'(H) -> true ; true).
 '$run_toplevel_hooks'.
 
@@ -1270,7 +1222,7 @@ catch_ball(C, C).
 
 '$exit_system_mode' :-
 	nb_setval('$system_mode',off),
-	( catch(nb_getval('$trace',on),_,fail) -> '$creep' ; true).
+	( '$nb_getval'('$trace',on,fail) -> '$creep' ; true).
 
 %
 % just prevent creeping from going on...
@@ -1300,51 +1252,11 @@ catch_ball(C, C).
 '$notrace'(G) :-
 	'$execute'(G).
 
-'$oncenotrace'(G) :-
-	'$disable_creep', !,
-	(
-	 '$execute'(G)
-	->
-	 '$creep'
-	;
-	 '$creep',
-	 fail
-	).	
-'$oncenotrace'(G) :-
-	'$execute'(G), !.
-
-
 '$run_at_thread_start' :-
 	recorded('$thread_initialization',M:D,_),
 	'$notrace'(M:D),
 	fail.
 '$run_at_thread_start'.
-
-
-nb_getval(GlobalVariable, Val) :-
-	'$nb_getval'(GlobalVariable, Val, Error),
-	(var(Error)
-	->
-	 true
-	;
-	 '$getval_exception'(GlobalVariable, Val, nb_getval(GlobalVariable, Val)) ->
-	 nb_getval(GlobalVariable, Val)
-	;
-	 '$do_error'(existence_error(variable, GlobalVariable),nb_getval(GlobalVariable, Val))
-	).
-		    
-
-b_getval(GlobalVariable, Val) :-
-	'$nb_getval'(GlobalVariable, Val, Error),
-	(var(Error)
-	->
-	 true
-	;
-	 '$getval_exception'(GlobalVariable, Val, b_getval(GlobalVariable, Val)) ->
-	 true
-	;
-	 '$do_error'(existence_error(variable, GlobalVariable),b_getval(GlobalVariable, Val))
-	).
 
 
 

@@ -12,7 +12,7 @@
 #include "Horus.h"
 
 
-BeliefProp::BeliefProp (const FactorGraph& fg) : Solver (fg)
+BeliefProp::BeliefProp (const FactorGraph& fg) : GroundSolver (fg)
 {
   runned_ = false;
 }
@@ -118,20 +118,19 @@ BeliefProp::getJointDistributionOf (const VarIds& jointVarIds)
   if (idx == facNodes.size()) {
     return getJointByConditioning (jointVarIds);
   }
-  return getFactorJoint (idx, jointVarIds);
+  return getFactorJoint (facNodes[idx], jointVarIds);
 }
 
 
 
 Params
 BeliefProp::getFactorJoint (
-    size_t fnIdx,
+    FacNode* fn,
     const VarIds& jointVarIds)
 {
   if (runned_ == false) {
     runSolver();
   }
-  FacNode* fn = fg.facNodes()[fnIdx];
   Factor res (fn->factor());
   const BpLinks& links = ninf(fn)->getLinks();
   for (size_t i = 0; i < links.size(); i++) {
@@ -350,20 +349,22 @@ BeliefProp::getVarToFactorMsg (const BpLink* link) const
   const BpLinks& links = ninf (src)->getLinks();
   if (Globals::logDomain) {
     for (it = links.begin(); it != links.end(); ++it) {
-      msg += (*it)->message();
+      if (*it != link) {
+        msg += (*it)->message();
+      }
       if (Constants::SHOW_BP_CALCS) {
         cout << " x " << (*it)->message();
       }
     }
-    msg -= link->message();
   } else {
     for (it = links.begin(); it != links.end(); ++it) {
-      msg *= (*it)->message();
+      if (*it != link) {
+        msg *= (*it)->message();
+      }
       if (Constants::SHOW_BP_CALCS) {
         cout << " x " << (*it)->message();
       }
     }
-    msg /= link->message();
   }
   if (Constants::SHOW_BP_CALCS) {
     cout << " = " << msg;
@@ -376,7 +377,8 @@ BeliefProp::getVarToFactorMsg (const BpLink* link) const
 Params
 BeliefProp::getJointByConditioning (const VarIds& jointVarIds) const
 {
-  return Solver::getJointByConditioning (GroundSolver::BP, fg, jointVarIds);
+  return GroundSolver::getJointByConditioning (
+      GroundSolverType::BP, fg, jointVarIds);
 }
 
 

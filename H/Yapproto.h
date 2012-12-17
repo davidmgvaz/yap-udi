@@ -83,15 +83,15 @@ void    STD_PROTO(Yap_init_agc, (void));
 
 /* alloc.c */
 void	STD_PROTO(Yap_FreeCodeSpace,(char *));
-char   *STD_PROTO(Yap_AllocAtomSpace,(unsigned long int));
-char   *STD_PROTO(Yap_AllocCodeSpace,(unsigned long int));
-char   *STD_PROTO(Yap_ReallocCodeSpace,(char *,unsigned long int));
+char   *STD_PROTO(Yap_AllocAtomSpace,(size_t));
+char   *STD_PROTO(Yap_AllocCodeSpace,(size_t));
+char   *STD_PROTO(Yap_ReallocCodeSpace,(char *,size_t));
 ADDR	STD_PROTO(Yap_AllocFromForeignArea,(Int));
 int     STD_PROTO(Yap_ExtendWorkSpace,(Int));
 void	STD_PROTO(Yap_FreeAtomSpace,(char *));
 int     STD_PROTO(Yap_FreeWorkSpace, (void));
 void	STD_PROTO(Yap_InitMemory,(UInt,UInt,UInt));
-void	STD_PROTO(Yap_InitExStacks,(int,int));
+void	STD_PROTO(Yap_InitExStacks,(int,int,int));
 
 /* amasm.c */
 OPCODE	STD_PROTO(Yap_opcode,(op_numbers));
@@ -137,6 +137,7 @@ void	STD_PROTO(Yap_BuildMegaClause,(struct pred_entry *));
 void	STD_PROTO(Yap_EraseMegaClause,(yamop *,struct pred_entry *));
 void	STD_PROTO(Yap_ResetConsultStack,(void));
 void	STD_PROTO(Yap_AssertzClause,(struct pred_entry *, yamop *));
+void    Yap_HidePred(struct pred_entry *pe);
 
 
 /* cmppreds.c */
@@ -176,7 +177,7 @@ Term	STD_PROTO(Yap_ExecuteCallMetaCall,(Term));
 void	STD_PROTO(Yap_InitExecFs,(void));
 Int	STD_PROTO(Yap_JumpToEnv,(Term));
 Term	STD_PROTO(Yap_RunTopGoal,(Term));
-void	STD_PROTO(Yap_ResetExceptionTerm,(void));
+void	STD_PROTO(Yap_ResetExceptionTerm,(int));
 Int	STD_PROTO(Yap_execute_goal,(Term, int, Term));
 Int	STD_PROTO(Yap_exec_absmi,(int));
 void	STD_PROTO(Yap_trust_last,(void));
@@ -199,13 +200,13 @@ void	STD_PROTO(Yap_InitGlobals,(void));
 Term	STD_PROTO(Yap_SaveTerm, (Term));
 Term	STD_PROTO(Yap_SetGlobalVal, (Atom, Term));
 Int	STD_PROTO(Yap_DeleteGlobal, (Atom));
-void	STD_PROTO(Yap_AllocateDefaultArena, (Int, Int));
+void	STD_PROTO(Yap_AllocateDefaultArena, (Int, Int, int));
 
 /* grow.c */
 Int     STD_PROTO(Yap_total_stack_shift_time,(void));
 void    STD_PROTO(Yap_InitGrowPreds, (void));
 UInt    STD_PROTO(Yap_InsertInGlobal, (CELL *, UInt));
-int     STD_PROTO(Yap_growheap,      (int, UInt, void *));
+int     STD_PROTO(Yap_growheap,      (int, size_t, void *));
 int     STD_PROTO(Yap_growstack,     (long));
 int     STD_PROTO(Yap_growtrail,     (long, int));
 int     STD_PROTO(Yap_growglobal,    (CELL **));
@@ -247,7 +248,7 @@ void	STD_PROTO(Yap_KillStacks,(int));
 #else
 void	STD_PROTO(Yap_KillStacks,(int));
 #endif
-void	STD_PROTO(Yap_InitYaamRegs,(void));
+void	STD_PROTO(Yap_InitYaamRegs,(int));
 void    STD_PROTO(Yap_ReInitWallTime, (void));
 int	STD_PROTO(Yap_OpDec,(int,char *,Atom,Term));
 void    STD_PROTO(Yap_CloseScratchPad,(void));
@@ -319,6 +320,9 @@ void	STD_PROTO(Yap_InitQLY,(void));
 int 	STD_PROTO(Yap_Restore,(char *, char *));
 void	STD_PROTO(Yap_InitQLYR,(void));
 
+/* range.c */
+void Yap_InitRange(void);
+
 /* save.c */
 int	STD_PROTO(Yap_SavedInfo,(char *,char *,CELL *,CELL *,CELL *));
 int 	STD_PROTO(Yap_SavedStateRestore,(char *, char *));
@@ -356,7 +360,7 @@ void    STD_PROTO(Yap_systime_interval,(Int *,Int *));
 void    STD_PROTO(Yap_walltime_interval,(Int *,Int *));
 void	STD_PROTO(Yap_InitSysbits,(void));
 void	STD_PROTO(Yap_InitSysPreds,(void));
-void	STD_PROTO(Yap_InitTime,(void));
+void	STD_PROTO(Yap_InitTime,(int));
 int     STD_PROTO(Yap_TrueFileName, (char *, char *, int));
 double  STD_PROTO(Yap_random, (void));
 #ifdef _WIN32
@@ -402,6 +406,7 @@ int	STD_PROTO(Yap_IsListOrPartialListTerm,(Term));
 Term	STD_PROTO(Yap_CopyTermNoShare,(Term));
 int	STD_PROTO(Yap_SizeGroundTerm,(Term, int));
 int	STD_PROTO(Yap_IsGroundTerm,(Term));
+int	STD_PROTO(Yap_IsAcyclicTerm,(Term));
 void	STD_PROTO(Yap_InitUtilCPreds,(void));
 Int     STD_PROTO(Yap_TermHash,(Term, Int, Int, int));
 Int     STD_PROTO(Yap_NumberVars,(Term, Int, int));

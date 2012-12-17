@@ -601,6 +601,12 @@ ac_includes_default="\
 
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
+ENABLE_ODBC
+ODBC_PLTARGETS
+ODBC_TARGETS
+ODBC_LIBS
+ODBC_LDFLAGS
+ODBC_CFLAGS
 ENABLE_LIBARCHIVE
 ARCHIVE_PLTARGETS
 ARCHIVE_TARGETS
@@ -623,6 +629,10 @@ IN_SWI
 IN_YAP
 PROLOG_SYSTEM
 M4GENABSMI
+PYTHON_LIBS
+PYTHON_INCLUDES
+ENABLE_PYTHON
+PYTHON_TARGET
 INSTALL_PRISM
 MATLAB_INCLUDE
 INSTALL_MATLAB
@@ -702,6 +712,7 @@ CPLINT_CFLAGS
 CPLINT_LIBS
 ENABLE_PRISM
 ENABLE_GECODE
+PYTHON
 REXE
 INSTALL_INFO
 MPI_CC
@@ -817,6 +828,7 @@ enable_cplint
 enable_clpbn_bp
 with_gmp
 with_R
+with_python
 with_minisat
 with_cudd
 enable_myddas
@@ -1500,6 +1512,7 @@ Optional Packages:
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
  --with-gmp=DIR           use GNU Multiple Precision in DIR
  --with-R=DIR              interface to R language
+ --with-python=DIR              interface to R language
  --enable-minisat           use minisat interface
  --with-cudd=DIR           use CUDD package in DIR
  --with-java=JAVA_HOME       use Java instalation in JAVA_HOME
@@ -4630,7 +4643,7 @@ fi
 if test "${enable_clpbn_bp+set}" = set; then :
   enableval=$enable_clpbn_bp; yap_cv_clpbn_bp="$enableval"
 else
-  yap_cv_clpbn_bp=no
+  yap_cv_clpbn_bp=yes
 fi
 
 
@@ -4660,10 +4673,24 @@ if test "${with_R+set}" = set; then :
 	elif test "$withval" = no; then
 	    yap_cv_R=no
 	else
-	    yap_cv_R=$with_R
+	    yap_cv_R=$withval
 	fi
 else
   yap_cv_R=no
+fi
+
+
+# Check whether --with-python was given.
+if test "${with_python+set}" = set; then :
+  withval=$with_python; if test "$withval" = yes; then
+	    yap_cv_python=yes
+	elif test "$withval" = no; then
+	    yap_cv_python=no
+	else
+	    yap_cv_python=$withval
+	fi
+else
+  yap_cv_python=no
 fi
 
 
@@ -4701,6 +4728,8 @@ if test "${enable_myddas+set}" = set; then :
 		yap_cv_myddas=$enable_myddas
 		LDFLAGS="$LDFLAGS -L${yap_cv_myddas}/lib "
 		CPPFLAGS="$CPPFLAGS -I${yap_cv_myddas}/include "
+		ODBC_LDFLAGS="-L${yap_cv_myddas}/lib "
+		ODBC_CFLAGS="-I${yap_cv_myddas}/include "
 	fi
 else
   yap_cv_myddas=/usr
@@ -5008,17 +5037,18 @@ else
   INSTALL_MATLAB=""
 fi
 
-ac_ext=cpp
+if test "$yap_cv_clpbn_bp"="yes"; then
+  ac_ext=cpp
 ac_cpp='$CXXCPP $CPPFLAGS'
 ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
 
-my_save_cxxflags="$CXXFLAGS"
-CXXFLAGS=-std=c++0x
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether CXX supports -std-c++0x" >&5
+  my_save_cxxflags="$CXXFLAGS"
+  CXXFLAGS=-std=c++0x
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether CXX supports -std-c++0x" >&5
 $as_echo_n "checking whether CXX supports -std-c++0x... " >&6; }
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
 int
@@ -5032,20 +5062,21 @@ _ACEOF
 if ac_fn_cxx_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
-    yap_cv_clpbn_bp=yes
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
+    yap_cv_clpbn_bp=no
 
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-CXXFLAGS="$my_save_cxxflags"
-ac_ext=c
+  CXXFLAGS="$my_save_cxxflags"
+  ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
+fi
 
 if test "$yap_cv_clpbn_bp" = no
 then
@@ -6794,6 +6825,70 @@ else
     ENABLE_REAL="@# "
 fi
 
+if test "$yap_cv_python" = "no"; then
+    PYTHON_TARGET="dummy"
+    ENABLE_PYTHON="@# "
+elif test -e "$srcdir"/packages/python/Makefile.in ; then
+   PYTHON_TARGET="pitf"
+   ENABLE_PYTHON=""
+   if test "$yap_cv_python" = "yes"
+   then
+      for ac_prog in python
+do
+  # Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_PYTHON+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$PYTHON"; then
+  ac_cv_prog_PYTHON="$PYTHON" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_prog_PYTHON="$ac_prog"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+fi
+fi
+PYTHON=$ac_cv_prog_PYTHON
+if test -n "$PYTHON"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $PYTHON" >&5
+$as_echo "$PYTHON" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  test -n "$PYTHON" && break
+done
+test -n "$PYTHON" || PYTHON=""none""
+
+   else
+     PYTHON="$yap_cv_python"
+   fi
+   PYTHONHOME=`$PYTHON -c'import sys; print sys.prefix'`
+   PYTHONVERSION=`"$PYTHON" -c "import sys; print sys.version[:3]"`
+   PYTHON_LIBS="-L $PYTHONHOME/lib -lpython$PYTHONVERSION"
+   LIBS="$LIBS $PYTHON_LIBS"
+   PYTHON_INCLUDES="-I $PYTHONHOME/include/python$PYTHONVERSION"
+else
+    PYTHON_TARGET="dummy"
+    ENABLE_PYTHON="@# "
+fi
+
 
 if test "$yap_cv_myddas" != "no"
 then
@@ -6925,6 +7020,73 @@ else
   yap_cv_odbc="no"
 fi
 
+	if test "$yap_cv_odbc" = yes
+	then
+	   ODBC_LIBS="$ODBC_LIBS -lodbc"
+	else
+	  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing SQLAllocHandle" >&5
+$as_echo_n "checking for library containing SQLAllocHandle... " >&6; }
+if ${ac_cv_search_SQLAllocHandle+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_func_search_save_LIBS=$LIBS
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char SQLAllocHandle ();
+int
+main ()
+{
+return SQLAllocHandle ();
+  ;
+  return 0;
+}
+_ACEOF
+for ac_lib in '' iodbc; do
+  if test -z "$ac_lib"; then
+    ac_res="none required"
+  else
+    ac_res=-l$ac_lib
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+  fi
+  if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_search_SQLAllocHandle=$ac_res
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext
+  if ${ac_cv_search_SQLAllocHandle+:} false; then :
+  break
+fi
+done
+if ${ac_cv_search_SQLAllocHandle+:} false; then :
+
+else
+  ac_cv_search_SQLAllocHandle=no
+fi
+rm conftest.$ac_ext
+LIBS=$ac_func_search_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_SQLAllocHandle" >&5
+$as_echo "$ac_cv_search_SQLAllocHandle" >&6; }
+ac_res=$ac_cv_search_SQLAllocHandle
+if test "$ac_res" != no; then :
+  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+  yap_cv_odbc="yes"
+else
+  yap_cv_odbc="no"
+fi
+
+	  if test "$yap_cv_odbc" = yes
+	  then
+	     ODBC_LIBS="$ODBC_LIBS -liodbc"
+	  fi
+        fi
 	if test "$yap_cv_odbc" = yes
 	then
 		YAP_EXTRAS="$YAP_EXTRAS -DMYDDAS_ODBC"
@@ -7409,6 +7571,12 @@ if test -e "$srcdir"/packages/archive/Makefile.in; then
   ENABLE_LIBARCHIVE=""
 else
   ENABLE_LIBARCHIVE="@# "
+fi
+
+if test -e "$srcdir"/packages/odbc/Makefile.in; then
+  ENABLE_ODBC=""
+else
+  ENABLE_ODBC="@# "
 fi
 
 if test "$use_chr" = no; then
@@ -8269,7 +8437,7 @@ fi
 
 if test "$coroutining" = "yes"
   then
-  YAP_EXTRAS="$YAP_EXTRAS -DCOROUTINING=1"
+  YAP_EXTRAS="$YAP_EXTRAS -DCOROUTINING=1 -DCUT_C=1"
 fi
 
 if test "$rationaltrees" = "yes"
@@ -9460,6 +9628,10 @@ fi
 
 
 CMDEXT=sh
+
+
+
+
 
 
 
@@ -10823,6 +10995,63 @@ fi
 
 fi
 
+
+if test "$yap_cv_odbc" = yes; then
+	   ODBC_TARGETS="odbc4pl.$SO"
+	   ODBC_PLTARGETS=odbc.pl
+	   for ac_header in sql.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "sql.h" "ac_cv_header_sql_h" "$ac_includes_default"
+if test "x$ac_cv_header_sql_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_SQL_H 1
+_ACEOF
+
+fi
+
+done
+
+	   for ac_func in localtime mktime gmtime timegm
+do :
+  as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
+ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
+if eval test \"x\$"$as_ac_var"\" = x"yes"; then :
+  cat >>confdefs.h <<_ACEOF
+#define `$as_echo "HAVE_$ac_func" | $as_tr_cpp` 1
+_ACEOF
+
+fi
+done
+
+	   ac_fn_c_check_type "$LINENO" "SQLLEN" "ac_cv_type_SQLLEN" "#include <sql.h>
+
+"
+if test "x$ac_cv_type_SQLLEN" = xyes; then :
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_SQLLEN 1
+_ACEOF
+
+
+fi
+ac_fn_c_check_type "$LINENO" "SQLULEN" "ac_cv_type_SQLULEN" "#include <sql.h>
+
+"
+if test "x$ac_cv_type_SQLULEN" = xyes; then :
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_SQLULEN 1
+_ACEOF
+
+
+fi
+
+else
+	   ODBC_TARGETS=nolib
+	   ODBC_PLTARGETS=odbc.pl
+fi
+
+
 if test "$ENABLE_LIBARCHIVE" = ""
 then
 OLD_LIBS=$LIBS
@@ -10886,6 +11115,7 @@ fi
 
 fi
 
+LIBS="$LIBS -larchive"
 for ac_func in archive_read_support_compression_bzip2 \
 	       archive_read_support_compression_compress \
 	       archive_read_support_compression_gzip \
@@ -10950,7 +11180,16 @@ fi
 
 
 
+LIBS="$OLD_LIBS"
 fi
+
+
+
+
+
+
+
+
 
 
 
@@ -11091,7 +11330,12 @@ ac_config_files="$ac_config_files packages/http/Makefile"
 fi
 
 if test "$ENABLE_JPL" = ""; then
-ac_config_files="$ac_config_files packages/jpl/Makefile packages/jpl/jpl_paths.yap packages/jpl/src/java/Makefile packages/pyswip/Makefile"
+ac_config_files="$ac_config_files packages/jpl/Makefile packages/jpl/jpl_paths.yap packages/jpl/src/java/Makefile"
+
+fi
+
+if test "$ENABLE_PYTHON" = ""; then
+ac_config_files="$ac_config_files packages/python/Makefile"
 
 fi
 
@@ -11134,6 +11378,11 @@ fi
 
 if test "$ENABLE_LIBARCHIVE" = ""; then
 ac_config_files="$ac_config_files packages/archive/Makefile"
+
+fi
+
+if test "$ENABLE_ODBC" = ""; then
+ac_config_files="$ac_config_files packages/odbc/Makefile"
 
 fi
 
@@ -11915,7 +12164,7 @@ do
     "packages/jpl/Makefile") CONFIG_FILES="$CONFIG_FILES packages/jpl/Makefile" ;;
     "packages/jpl/jpl_paths.yap") CONFIG_FILES="$CONFIG_FILES packages/jpl/jpl_paths.yap" ;;
     "packages/jpl/src/java/Makefile") CONFIG_FILES="$CONFIG_FILES packages/jpl/src/java/Makefile" ;;
-    "packages/pyswip/Makefile") CONFIG_FILES="$CONFIG_FILES packages/pyswip/Makefile" ;;
+    "packages/python/Makefile") CONFIG_FILES="$CONFIG_FILES packages/python/Makefile" ;;
     "packages/pldoc/Makefile") CONFIG_FILES="$CONFIG_FILES packages/pldoc/Makefile" ;;
     "packages/pldoc/server/man_server.pl") CONFIG_FILES="$CONFIG_FILES packages/pldoc/server/man_server.pl" ;;
     "packages/plunit/Makefile") CONFIG_FILES="$CONFIG_FILES packages/plunit/Makefile" ;;
@@ -11925,6 +12174,7 @@ do
     "packages/sgml/Makefile") CONFIG_FILES="$CONFIG_FILES packages/sgml/Makefile" ;;
     "packages/zlib/Makefile") CONFIG_FILES="$CONFIG_FILES packages/zlib/Makefile" ;;
     "packages/archive/Makefile") CONFIG_FILES="$CONFIG_FILES packages/archive/Makefile" ;;
+    "packages/odbc/Makefile") CONFIG_FILES="$CONFIG_FILES packages/odbc/Makefile" ;;
     "packages/bdd/Makefile") CONFIG_FILES="$CONFIG_FILES packages/bdd/Makefile" ;;
     "packages/ProbLog/simplecudd/Makefile") CONFIG_FILES="$CONFIG_FILES packages/ProbLog/simplecudd/Makefile" ;;
     "packages/ProbLog/simplecudd_lfi/Makefile") CONFIG_FILES="$CONFIG_FILES packages/ProbLog/simplecudd_lfi/Makefile" ;;

@@ -1,14 +1,15 @@
 #include "LiftedBp.h"
 #include "WeightedBp.h"
 #include "FactorGraph.h"
-#include "LiftedVe.h"
+#include "LiftedOperations.h"
 
 
-LiftedBp::LiftedBp (const ParfactorList& pfList)
-    : pfList_(pfList)
+LiftedBp::LiftedBp (const ParfactorList& parfactorList)
+    : LiftedSolver (parfactorList)
 {
   refineParfactors();
-  solver_ = new WeightedBp (*getFactorGraph(), getWeights());
+  createFactorGraph();
+  solver_ = new WeightedBp (*fg_, getWeights());
 }
 
 
@@ -16,6 +17,7 @@ LiftedBp::LiftedBp (const ParfactorList& pfList)
 LiftedBp::~LiftedBp (void)
 {
   delete solver_;
+  delete fg_;
 }
 
 
@@ -47,7 +49,7 @@ LiftedBp::solveQuery (const Grounds& query)
       for (unsigned i = 0; i < groups.size(); i++) {
         queryVids.push_back (groups[i]);
       }
-      res = solver_->getFactorJoint (idx, queryVids);
+      res = solver_->getFactorJoint (fg_->facNodes()[idx], queryVids);
     }
   }
   return res;
@@ -80,6 +82,7 @@ LiftedBp::printSolverFlags (void) const
 void
 LiftedBp::refineParfactors (void)
 {
+  pfList_ = parfactorList;
   while (iterate() == false);
 
   if (Globals::verbosity > 2) {
@@ -99,7 +102,7 @@ LiftedBp::iterate (void)
     for (size_t i = 0; i < args.size(); i++) {
       LogVarSet lvs = (*it)->logVarSet() - args[i].logVars();
       if ((*it)->constr()->isCountNormalized (lvs) == false) {
-        Parfactors pfs = LiftedVe::countNormalize (*it, lvs);
+        Parfactors pfs = LiftedOperations::countNormalize (*it, lvs);
         it = pfList_.removeAndDelete (it);
         pfList_.add (pfs);
         return false;
@@ -131,10 +134,10 @@ LiftedBp::getQueryGroups (const Grounds& query)
 
 
 
-FactorGraph*
-LiftedBp::getFactorGraph (void)
+void
+LiftedBp::createFactorGraph (void)
 {
-  FactorGraph* fg = new FactorGraph();
+  fg_ = new FactorGraph();
   ParfactorList::const_iterator it = pfList_.begin();
   for (; it != pfList_.end(); ++it) {
     vector<PrvGroup> groups = (*it)->getAllGroups();
@@ -142,9 +145,8 @@ LiftedBp::getFactorGraph (void)
     for (size_t i = 0; i < groups.size(); i++) {
       varIds.push_back (groups[i]);
     }
-    fg->addFactor (Factor (varIds, (*it)->ranges(), (*it)->params()));
+    fg_->addFactor (Factor (varIds, (*it)->ranges(), (*it)->params()));
   }
-  return fg;
 }
 
 
@@ -188,12 +190,12 @@ LiftedBp::rangeOfGround (const Ground& gr)
 Params
 LiftedBp::getJointByConditioning (
     const ParfactorList& pfList,
-    const Grounds& grounds)
+    const Grounds& query)
 {
   LiftedBp solver (pfList);
-  Params prevBeliefs = solver.solveQuery ({grounds[0]});
-  Grounds obsGrounds = {grounds[0]};
-  for (size_t i = 1; i < grounds.size(); i++) {
+  Params prevBeliefs = solver.solveQuery ({query[0]});
+  Grounds obsGrounds = {query[0]};
+  for (size_t i = 1; i < query.size(); i++) {
     Params newBeliefs;
     vector<ObservedFormula> obsFs;
     Ranges obsRanges;
@@ -208,16 +210,16 @@ LiftedBp::getJointByConditioning (
         obsFs[j].setEvidence (indexer[j]);
       }
       ParfactorList tempPfList (pfList);
-      LiftedVe::absorveEvidence (tempPfList, obsFs);
+      LiftedOperations::absorveEvidence (tempPfList, obsFs);
       LiftedBp solver (tempPfList);
-      Params beliefs = solver.solveQuery ({grounds[i]});
+      Params beliefs = solver.solveQuery ({query[i]});
       for (size_t k = 0; k < beliefs.size(); k++) {
         newBeliefs.push_back (beliefs[k]);
       }
       ++ indexer;
     }
     int count = -1;
-    unsigned range = rangeOfGround (grounds[i]);
+    unsigned range = rangeOfGround (query[i]);
     for (size_t j = 0; j < newBeliefs.size(); j++) {
       if (j % range == 0) {
         count ++;
@@ -225,7 +227,7 @@ LiftedBp::getJointByConditioning (
       newBeliefs[j] *= prevBeliefs[count];
     }
     prevBeliefs = newBeliefs;
-    obsGrounds.push_back (grounds[i]);
+    obsGrounds.push_back (query[i]);
   }
   return prevBeliefs;
 }

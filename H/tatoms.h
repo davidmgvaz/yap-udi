@@ -450,6 +450,8 @@
 #define AtomRadix Yap_heap_regs->AtomRadix_
   Atom AtomRandom_;
 #define AtomRandom Yap_heap_regs->AtomRandom_
+  Atom AtomRange_;
+#define AtomRange Yap_heap_regs->AtomRange_
   Atom AtomRead_;
 #define AtomRead Yap_heap_regs->AtomRead_
   Atom AtomReadutil_;
@@ -576,6 +578,8 @@
 #define AtomTerm Yap_heap_regs->AtomTerm_
   Atom AtomTerms_;
 #define AtomTerms Yap_heap_regs->AtomTerms_
+  Atom AtomTermExpansion_;
+#define AtomTermExpansion Yap_heap_regs->AtomTermExpansion_
   Atom AtomTextStream_;
 #define AtomTextStream Yap_heap_regs->AtomTextStream_
   Atom AtomThreads_;
@@ -766,6 +770,8 @@
 #define FunctorGVar Yap_heap_regs->FunctorGVar_
   Functor FunctorGeneratePredInfo_;
 #define FunctorGeneratePredInfo Yap_heap_regs->FunctorGeneratePredInfo_
+  Functor FunctorGoalExpansion2_;
+#define FunctorGoalExpansion2 Yap_heap_regs->FunctorGoalExpansion2_
   Functor FunctorGoalExpansion_;
 #define FunctorGoalExpansion Yap_heap_regs->FunctorGoalExpansion_
   Functor FunctorHandleThrow_;
@@ -844,6 +850,8 @@
 #define FunctorSyntaxError Yap_heap_regs->FunctorSyntaxError_
   Functor FunctorShortSyntaxError_;
 #define FunctorShortSyntaxError Yap_heap_regs->FunctorShortSyntaxError_
+  Functor FunctorTermExpansion_;
+#define FunctorTermExpansion Yap_heap_regs->FunctorTermExpansion_
   Functor FunctorThreadRun_;
 #define FunctorThreadRun Yap_heap_regs->FunctorThreadRun_
   Functor FunctorThrow_;

@@ -1781,7 +1781,7 @@ Restore(char *s, char *lib_dir USES_REGS)
     break;
   case DO_ONLY_CODE:
     UnmarkTrEntries( PASS_REGS1 );
-    Yap_InitYaamRegs();
+    Yap_InitYaamRegs( 0 );
     break;
   }
 
@@ -1794,7 +1794,7 @@ Restore(char *s, char *lib_dir USES_REGS)
   Yap_InitSysPath();
 #if USE_DL_MALLOC || USE_SYSTEM_MALLOC
   if (!AuxSp) {
-    Yap_InitPreAllocCodeSpace();
+    Yap_InitPreAllocCodeSpace( 0 );
   }
 #endif
   CloseRestore();
@@ -1843,7 +1843,7 @@ p_restore( USES_REGS1 )
 void 
 Yap_InitSavePreds(void)
 {
-  Yap_InitCPred("$save", 2, p_save2, SyncPredFlag|HiddenPredFlag);
-  Yap_InitCPred("$save_program", 1, p_save_program, SyncPredFlag|HiddenPredFlag);
-  Yap_InitCPred("$restore", 1, p_restore, SyncPredFlag|HiddenPredFlag);
+  Yap_InitCPred("$save", 2, p_save2, SyncPredFlag);
+  Yap_InitCPred("$save_program", 1, p_save_program, SyncPredFlag);
+  Yap_InitCPred("$restore", 1, p_restore, SyncPredFlag);
 }

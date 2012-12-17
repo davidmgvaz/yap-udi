@@ -351,7 +351,6 @@ expand_goal(G, G).
 	->
 	 true
 	;
-	 recorded('$dialect',swi,_),
 	 '$pred_exists'(goal_expansion(G,GI), system),
 	 system:goal_expansion(G, GI)
 	->
@@ -397,11 +396,7 @@ expand_goal(G, G).
 	% make built-in processing transparent.
 	'$match_mod'(G, M, ORIG, HM, G1),
 	'$c_built_in'(G1, M, Gi),
-	(Gi \== G1 ->
-	 '$module_expansion'(Gi, G2, _, M, CM, HM, HVars)
-	;
-	 G2 = G1
-	).
+	G1 = G2.
 '$complete_goal_expansion'(G, GMod, _, HM, NG, NG, _) :-
 	'$match_mod'(G, GMod, GMod, HM, NG).
 
@@ -587,6 +582,7 @@ source_module(Mod) :-
 	assertz(:),
 	assertz(:,+),
 	assertz_static(:),
+	at_halt(0),
 	bagof(?,0,-),
 	bb_get(:,-),
 	bb_put(:,+),
@@ -651,6 +647,7 @@ source_module(Mod) :-
 	setup_call_cleanup(0,0,0),
 	setup_call_catcher_cleanup(0,0,?,0),
 	spy(:),
+	stash_predicate(:),
 	unknown(+,:),
 	use_module(:),
 	use_module(:,?),
@@ -685,32 +682,44 @@ abolish_module(Mod) :-
 	fail.
 abolish_module(_).
 
-export(P) :-
-	var(P),
-	'$do_error'(instantiation_error,export(P)).	
-export(P) :-
-	P = F/N, atom(F), number(N), N > 0, !,
+export(Resource) :-
+	var(Resource),
+	'$do_error'(instantiation_error,export(Resource)).	
+export([]) :- !.
+export([Resource| Resources]) :- !,
+	export_resource(Resource),
+	export(Resources).
+export(Resource) :-
+	export_resource(Resource).
+
+export_resource(Resource) :-
+	var(Resource),
+	'$do_error'(instantiation_error,export(Resource)).	
+export_resource(P) :-
+	P = F/N, atom(F), number(N), N >= 0, !,
 	'$current_module'(Mod), 
-	( recorded('$module','$module'(F,Mod,ExportedPreds),R) ->
-	    erase(R), 
-	    recorda('$module','$module'(F,Mod,[P|ExportedPreds]),_)
-	;
-	    recorda('$module','$module'(user_input,Mod,[P]),_)
+	(	recorded('$module','$module'(File,Mod,ExportedPreds),R) ->
+		erase(R), 
+		recorda('$module','$module'(File,Mod,[P|ExportedPreds]),_)
+	;	prolog_load_context(file, File) ->
+		recorda('$module','$module'(File,Mod,[P]),_)
+	;	recorda('$module','$module'(user_input,Mod,[P]),_)
 	).
-export(P0) :-
-	P0 = F//N, atom(F), number(N), N > 0, !,
+export_resource(P0) :-
+	P0 = F//N, atom(F), number(N), N >= 0, !,
 	N1 is N+2, P = F/N1,
 	'$current_module'(Mod), 
-	( recorded('$module','$module'(F,Mod,ExportedPreds),R) ->
-	    erase(R), 
-	    recorda('$module','$module'(F,Mod,[P|ExportedPreds]),_)
-	;
-	    recorda('$module','$module'(user_input,Mod,[P]),_)
+	(	recorded('$module','$module'(File,Mod,ExportedPreds),R) ->
+		erase(R), 
+		recorda('$module','$module'(File,Mod,[P|ExportedPreds]),_)
+	;	prolog_load_context(file, File) ->
+		recorda('$module','$module'(File,Mod,[P]),_)
+	;	recorda('$module','$module'(user_input,Mod,[P]),_)
 	).
-export(op(Prio,Assoc,Name)) :- !,
+export_resource(op(Prio,Assoc,Name)) :- !,
 	op(Prio,Assoc,prolog:Name).
-export(P) :-
-	'$do_error'(type_error(predicate_indicator,P),export(P)).
+export_resource(Resource) :-
+	'$do_error'(type_error(predicate_indicator,Resource),export(Resource)).
 	
 export_list(Module, List) :-
 	recorded('$module','$module'(_,Module,List),_).

@@ -1410,7 +1410,7 @@ growatomtable( USES_REGS1 )
 
 
 int
-Yap_growheap(int fix_code, UInt in_size, void *cip)
+Yap_growheap(int fix_code, size_t in_size, void *cip)
 {
   CACHE_REGS
   int res;
@@ -1441,7 +1441,7 @@ Yap_growheap(int fix_code, UInt in_size, void *cip)
   }
 #if USE_SYSTEM_MALLOC
   P = Yap_Error(OUT_OF_HEAP_ERROR,TermNil,"malloc failed");
-  res = -1;
+  res = FALSE;
 #else
   res=do_growheap(fix_code, in_size, (struct intermediates *)cip, NULL, NULL, NULL PASS_REGS);
 #endif
@@ -1980,11 +1980,11 @@ Yap_total_stack_shift_time(void)
 void
 Yap_InitGrowPreds(void)
 {
-  Yap_InitCPred("$grow_heap", 1, p_growheap, SafePredFlag|HiddenPredFlag);
-  Yap_InitCPred("$grow_stack", 1, p_growstack, SafePredFlag|HiddenPredFlag);
-  Yap_InitCPred("$inform_trail_overflows", 2, p_inform_trail_overflows, SafePredFlag|HiddenPredFlag);
-  Yap_InitCPred("$inform_heap_overflows", 2, p_inform_heap_overflows, SafePredFlag|HiddenPredFlag);
-  Yap_InitCPred("$inform_stack_overflows", 2, p_inform_stack_overflows, SafePredFlag|HiddenPredFlag);
+  Yap_InitCPred("$grow_heap", 1, p_growheap, SafePredFlag);
+  Yap_InitCPred("$grow_stack", 1, p_growstack, SafePredFlag);
+  Yap_InitCPred("$inform_trail_overflows", 2, p_inform_trail_overflows, SafePredFlag);
+  Yap_InitCPred("$inform_heap_overflows", 2, p_inform_heap_overflows, SafePredFlag);
+  Yap_InitCPred("$inform_stack_overflows", 2, p_inform_stack_overflows, SafePredFlag);
   Yap_init_gc();
   Yap_init_agc();
 }

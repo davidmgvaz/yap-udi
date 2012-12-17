@@ -62,15 +62,15 @@ allocate_new_tid(void)
   if (new_worker_id >= MAX_THREADS) {
     new_worker_id = -1;
   } else if (!Yap_local[new_worker_id]) {
-    DEBUG_TLOCK_ACCESS(new_worker_id, 0);
     if (!Yap_InitThread(new_worker_id)) {
       return -1;
     }
     pthread_mutex_lock(&(REMOTE_ThreadHandle(new_worker_id).tlock));
+    DEBUG_TLOCK_ACCESS(new_worker_id, 0);
     REMOTE_ThreadHandle(new_worker_id).in_use = TRUE;
   } else if (new_worker_id < MAX_THREADS) {
-    DEBUG_TLOCK_ACCESS(new_worker_id, 0);
     pthread_mutex_lock(&(REMOTE_ThreadHandle(new_worker_id).tlock));
+    DEBUG_TLOCK_ACCESS(new_worker_id, 0);
     REMOTE_ThreadHandle(new_worker_id).in_use = TRUE;
   } else {
     new_worker_id = -1;
@@ -230,15 +230,11 @@ setup_engine(int myworker_id, int init_thread)
   regcache = standard_regs;
   /* create the YAAM descriptor */
   REMOTE_ThreadHandle(myworker_id).default_yaam_regs = standard_regs;
-  if (init_thread) {
-    pthread_setspecific(Yap_yaamregs_key, (void *)REMOTE_ThreadHandle(myworker_id).default_yaam_regs);
-  }
-  worker_id = myworker_id;
-  LOCAL = REMOTE(worker_id);
-  Yap_InitExStacks(REMOTE_ThreadHandle(myworker_id).tsize, REMOTE_ThreadHandle(myworker_id).ssize);
+  Yap_InitExStacks(myworker_id, REMOTE_ThreadHandle(myworker_id).tsize, REMOTE_ThreadHandle(myworker_id).ssize);
   CurrentModule = REMOTE_ThreadHandle(myworker_id).cmod;
-  Yap_InitTime();
-  Yap_InitYaamRegs();
+  Yap_InitTime( myworker_id );
+  Yap_InitYaamRegs( myworker_id );
+  REFRESH_CACHE_REGS
   Yap_ReleasePreAllocCodeSpace(Yap_PreAllocCodeSpace());
   /* I exist */
   GLOBAL_NOfThreadsCreated++;
@@ -246,7 +242,7 @@ setup_engine(int myworker_id, int init_thread)
   DEBUG_TLOCK_ACCESS(2, myworker_id);
   pthread_mutex_unlock(&(REMOTE_ThreadHandle(myworker_id).tlock));  
 #ifdef TABLING
-  new_dependency_frame(LOCAL_top_dep_fr, FALSE, NULL, NULL, B, NULL, FALSE, NULL);  /* same as in Yap_init_root_frames() */
+  new_dependency_frame(REMOTE_top_dep_fr(myworker_id), FALSE, NULL, NULL, B, NULL, FALSE, NULL);  /* same as in Yap_init_root_frames() */
 #endif /* TABLING */
   return TRUE;
 }
@@ -254,7 +250,11 @@ setup_engine(int myworker_id, int init_thread)
 static void
 start_thread(int myworker_id)
 {
-  setup_engine(myworker_id, TRUE);
+  CACHE_REGS
+  pthread_setspecific(Yap_yaamregs_key, (void *)REMOTE_ThreadHandle(myworker_id).default_yaam_regs);
+  REFRESH_CACHE_REGS;
+  worker_id = myworker_id;
+  LOCAL = REMOTE(myworker_id);
 }
 
 static void *
@@ -267,13 +267,14 @@ thread_run(void *widp)
 #ifdef OUTPUT_THREADS_TABLING
   char thread_name[25];
   char filename[YAP_FILENAME_MAX]; 
+
   sprintf(thread_name, "/thread_output_%d", myworker_id);
   strcpy(filename, YAP_BINDIR);
   strncat(filename, thread_name, 25);
-  LOCAL_thread_output = fopen(filename, "w");
+  REMOTE_thread_output(myworker_id) = fopen(filename, "w");
 #endif /* OUTPUT_THREADS_TABLING */
   start_thread(myworker_id);
-  regcache = ((REGSTORE *)pthread_getspecific(Yap_yaamregs_key));
+  REFRESH_CACHE_REGS;
   do {
     t = tgs[0] = Yap_PopTermFromDB(LOCAL_ThreadHandle.tgoal);
     if (t == 0) {
@@ -328,7 +329,8 @@ p_create_thread( USES_REGS1 )
   Term x2 = Deref(ARG2);
   Term x3 = Deref(ARG3);
   Term x4 = Deref(ARG4);
-  int new_worker_id = IntegerOfTerm(Deref(ARG7));
+  int new_worker_id = IntegerOfTerm(Deref(ARG7)),
+    owid = worker_id;
   
   //  fprintf(stderr," %d --> %d\n", worker_id, new_worker_id); 
   if (IsBigIntTerm(x2))
@@ -349,10 +351,13 @@ p_create_thread( USES_REGS1 )
   //REMOTE_ThreadHandle(new_worker_id).pthread_handle = 0L;
   REMOTE_ThreadHandle(new_worker_id).id = new_worker_id;
   REMOTE_ThreadHandle(new_worker_id).ref_count = 1;
+  setup_engine(new_worker_id, FALSE);
   if ((REMOTE_ThreadHandle(new_worker_id).ret = pthread_create(&REMOTE_ThreadHandle(new_worker_id).pthread_handle, NULL, thread_run, (void *)(&(REMOTE_ThreadHandle(new_worker_id).id)))) == 0) {
+    pthread_setspecific(Yap_yaamregs_key, (const void *)REMOTE_ThreadHandle(owid).current_yaam_regs);
     /* wait until the client is initialised */
     return TRUE;
   }
+  pthread_setspecific(Yap_yaamregs_key, (const void *)REMOTE_ThreadHandle(owid).current_yaam_regs);
   return FALSE;
 }
 
@@ -406,8 +411,8 @@ p_thread_zombie_self( USES_REGS1 )
   /* make sure the lock is available */
   if (pthread_getspecific(Yap_yaamregs_key) == NULL)
     return Yap_unify(MkIntegerTerm(-1), ARG1);
-  DEBUG_TLOCK_ACCESS(4, worker_id);
   pthread_mutex_lock(&(LOCAL_ThreadHandle.tlock));
+  DEBUG_TLOCK_ACCESS(4, worker_id);
   if (LOCAL_ActiveSignals &= YAP_ITI_SIGNAL) {
     DEBUG_TLOCK_ACCESS(5, worker_id);
     pthread_mutex_unlock(&(LOCAL_ThreadHandle.tlock));
@@ -456,8 +461,9 @@ Yap_thread_create_engine(thread_attr *ops)
   Term t = TermNil;
 
   /* 
-     ok, this creates a problem, because we are initializing an engine from some "empty" thread. 
-     We need first to foool the thread into believing it is the main thread
+     ok, this creates a problem, because we are initializing an engine from
+     some "empty" thread. 
+     We need first to fool the thread into believing it is the main thread
   */
   if (new_id == -1) {
     /* YAP ERROR */
@@ -498,16 +504,16 @@ Yap_thread_attach_engine(int wid)
      pthread_mutex_lock(&(REMOTE_ThreadHandle(wid).tlock));
   */
   if (REMOTE_ThreadHandle(wid).ref_count ) {
-    DEBUG_TLOCK_ACCESS(8, wid);
     REMOTE_ThreadHandle(wid).ref_count++;
     REMOTE_ThreadHandle(wid).pthread_handle = pthread_self();
+    DEBUG_TLOCK_ACCESS(8, wid);
     pthread_mutex_unlock(&(REMOTE_ThreadHandle(wid).tlock));
     return TRUE;
   }
   REMOTE_ThreadHandle(wid).pthread_handle = pthread_self();
   REMOTE_ThreadHandle(wid).ref_count++;
-  pthread_setspecific(Yap_yaamregs_key, (const void *)REMOTE_ThreadHandle(wid).default_yaam_regs);
-  worker_id = wid;  /* ricroc: for what I understand, this shouldn't be necessary */
+  pthread_setspecific(Yap_yaamregs_key, (const void *)REMOTE_ThreadHandle(wid).current_yaam_regs);
+  REFRESH_CACHE_REGS;
   DEBUG_TLOCK_ACCESS(9, wid);
   pthread_mutex_unlock(&(REMOTE_ThreadHandle(wid).tlock));
   return TRUE;
@@ -516,8 +522,8 @@ Yap_thread_attach_engine(int wid)
 Int
 Yap_thread_detach_engine(int wid)
 {
-  DEBUG_TLOCK_ACCESS(10, wid);
   pthread_mutex_lock(&(REMOTE_ThreadHandle(wid).tlock));
+  DEBUG_TLOCK_ACCESS(10, wid);
   //REMOTE_ThreadHandle(wid).pthread_handle = 0;
   REMOTE_ThreadHandle(wid).ref_count--;
   pthread_setspecific(Yap_yaamregs_key, NULL);
@@ -529,8 +535,8 @@ Yap_thread_detach_engine(int wid)
 Int
 Yap_thread_destroy_engine(int wid)
 {
-  DEBUG_TLOCK_ACCESS(10, wid);
   pthread_mutex_lock(&(REMOTE_ThreadHandle(wid).tlock));
+  DEBUG_TLOCK_ACCESS(10, wid);
   if (REMOTE_ThreadHandle(wid).ref_count == 0) {
     kill_thread_engine(wid, TRUE);
     return TRUE;
@@ -949,41 +955,41 @@ p_thread_unlock( USES_REGS1 )
 
 void Yap_InitThreadPreds(void)
 {
-  Yap_InitCPred("$no_threads", 0, p_no_threads, HiddenPredFlag);
-  Yap_InitCPred("$max_workers", 1, p_max_workers, HiddenPredFlag);
-  Yap_InitCPred("$max_threads", 1, p_max_threads, HiddenPredFlag);
-  Yap_InitCPred("$thread_new_tid", 1, p_thread_new_tid, HiddenPredFlag);
-  Yap_InitCPred("$create_thread", 7, p_create_thread, HiddenPredFlag);
-  Yap_InitCPred("$thread_self", 1, p_thread_self, SafePredFlag|HiddenPredFlag);
-  Yap_InitCPred("$thread_status_lock", 1, p_thread_status_lock, SafePredFlag|HiddenPredFlag);
-  Yap_InitCPred("$thread_status_unlock", 1, p_thread_status_unlock, SafePredFlag|HiddenPredFlag);
-  Yap_InitCPred("$thread_zombie_self", 1, p_thread_zombie_self, SafePredFlag|HiddenPredFlag);
-  Yap_InitCPred("$thread_join", 1, p_thread_join, HiddenPredFlag);
-  Yap_InitCPred("$thread_destroy", 1, p_thread_destroy, HiddenPredFlag);
+  Yap_InitCPred("$no_threads", 0, p_no_threads, 0);
+  Yap_InitCPred("$max_workers", 1, p_max_workers, 0);
+  Yap_InitCPred("$max_threads", 1, p_max_threads, 0);
+  Yap_InitCPred("$thread_new_tid", 1, p_thread_new_tid, 0);
+  Yap_InitCPred("$create_thread", 7, p_create_thread, 0);
+  Yap_InitCPred("$thread_self", 1, p_thread_self, SafePredFlag);
+  Yap_InitCPred("$thread_status_lock", 1, p_thread_status_lock, SafePredFlag);
+  Yap_InitCPred("$thread_status_unlock", 1, p_thread_status_unlock, SafePredFlag);
+  Yap_InitCPred("$thread_zombie_self", 1, p_thread_zombie_self, SafePredFlag);
+  Yap_InitCPred("$thread_join", 1, p_thread_join, 0);
+  Yap_InitCPred("$thread_destroy", 1, p_thread_destroy, 0);
   Yap_InitCPred("thread_yield", 0, p_thread_yield, 0);
-  Yap_InitCPred("$detach_thread", 1, p_thread_detach, HiddenPredFlag);
-  Yap_InitCPred("$thread_detached", 1, p_thread_detached, HiddenPredFlag);
-  Yap_InitCPred("$thread_detached", 2, p_thread_detached2, HiddenPredFlag);
-  Yap_InitCPred("$thread_exit", 0, p_thread_exit, HiddenPredFlag);
+  Yap_InitCPred("$detach_thread", 1, p_thread_detach, 0);
+  Yap_InitCPred("$thread_detached", 1, p_thread_detached, 0);
+  Yap_InitCPred("$thread_detached", 2, p_thread_detached2, 0);
+  Yap_InitCPred("$thread_exit", 0, p_thread_exit, 0);
   Yap_InitCPred("thread_setconcurrency", 2, p_thread_set_concurrency, 0);
-  Yap_InitCPred("$valid_thread", 1, p_valid_thread, HiddenPredFlag);
-  Yap_InitCPred("$new_mutex", 1, p_new_mutex, SafePredFlag|HiddenPredFlag);
-  Yap_InitCPred("$destroy_mutex", 1, p_destroy_mutex, SafePredFlag|HiddenPredFlag);
-  Yap_InitCPred("$lock_mutex", 1, p_lock_mutex, SafePredFlag|HiddenPredFlag);
-  Yap_InitCPred("$trylock_mutex", 1, p_trylock_mutex, SafePredFlag|HiddenPredFlag);
-  Yap_InitCPred("$unlock_mutex", 1, p_unlock_mutex, SafePredFlag|HiddenPredFlag);
-  Yap_InitCPred("$mutex_info", 3, p_mutex_info, SafePredFlag|HiddenPredFlag);
-  Yap_InitCPred("$cond_create", 1, p_cond_create, SafePredFlag|HiddenPredFlag);
-  Yap_InitCPred("$cond_destroy", 1, p_cond_destroy, SafePredFlag|HiddenPredFlag);
-  Yap_InitCPred("$cond_signal", 1, p_cond_signal, SafePredFlag|HiddenPredFlag);
-  Yap_InitCPred("$cond_broadcast", 1, p_cond_broadcast, SafePredFlag|HiddenPredFlag);
-  Yap_InitCPred("$cond_wait", 2, p_cond_wait, SafePredFlag|HiddenPredFlag);
-  Yap_InitCPred("$thread_stacks", 4, p_thread_stacks, SafePredFlag|HiddenPredFlag);
-  Yap_InitCPred("$signal_thread", 1, p_thread_signal, SafePredFlag|HiddenPredFlag);
-  Yap_InitCPred("$nof_threads", 1, p_nof_threads, SafePredFlag|HiddenPredFlag);
-  Yap_InitCPred("$nof_threads_created", 1, p_nof_threads_created, SafePredFlag|HiddenPredFlag);
-  Yap_InitCPred("$thread_sleep", 4, p_thread_sleep, SafePredFlag|HiddenPredFlag);
-  Yap_InitCPred("$thread_runtime", 1, p_thread_runtime, SafePredFlag|HiddenPredFlag);
+  Yap_InitCPred("$valid_thread", 1, p_valid_thread, 0);
+  Yap_InitCPred("$new_mutex", 1, p_new_mutex, SafePredFlag);
+  Yap_InitCPred("$destroy_mutex", 1, p_destroy_mutex, SafePredFlag);
+  Yap_InitCPred("$lock_mutex", 1, p_lock_mutex, SafePredFlag);
+  Yap_InitCPred("$trylock_mutex", 1, p_trylock_mutex, SafePredFlag);
+  Yap_InitCPred("$unlock_mutex", 1, p_unlock_mutex, SafePredFlag);
+  Yap_InitCPred("$mutex_info", 3, p_mutex_info, SafePredFlag);
+  Yap_InitCPred("$cond_create", 1, p_cond_create, SafePredFlag);
+  Yap_InitCPred("$cond_destroy", 1, p_cond_destroy, SafePredFlag);
+  Yap_InitCPred("$cond_signal", 1, p_cond_signal, SafePredFlag);
+  Yap_InitCPred("$cond_broadcast", 1, p_cond_broadcast, SafePredFlag);
+  Yap_InitCPred("$cond_wait", 2, p_cond_wait, SafePredFlag);
+  Yap_InitCPred("$thread_stacks", 4, p_thread_stacks, SafePredFlag);
+  Yap_InitCPred("$signal_thread", 1, p_thread_signal, SafePredFlag);
+  Yap_InitCPred("$nof_threads", 1, p_nof_threads, SafePredFlag);
+  Yap_InitCPred("$nof_threads_created", 1, p_nof_threads_created, SafePredFlag);
+  Yap_InitCPred("$thread_sleep", 4, p_thread_sleep, SafePredFlag);
+  Yap_InitCPred("$thread_runtime", 1, p_thread_runtime, SafePredFlag);
   Yap_InitCPred("$thread_self_lock", 1, p_thread_self_lock, SafePredFlag);
   Yap_InitCPred("$thread_run_at_exit", 2, p_thread_atexit, SafePredFlag);
   Yap_InitCPred("$thread_unlock", 1, p_thread_unlock, SafePredFlag);
@@ -1047,14 +1053,14 @@ p_max_workers(void)
 
 void Yap_InitThreadPreds(void)
 {
-  Yap_InitCPred("$max_workers", 1, p_max_workers, HiddenPredFlag);
-  Yap_InitCPred("$thread_self", 1, p_thread_self, SafePredFlag|HiddenPredFlag);
-  Yap_InitCPred("$no_threads", 0, p_no_threads, SafePredFlag|HiddenPredFlag);
-  Yap_InitCPred("$max_threads", 1, p_max_threads, SafePredFlag|HiddenPredFlag);
-  Yap_InitCPred("$nof_threads", 1, p_nof_threads, SafePredFlag|HiddenPredFlag);
-  Yap_InitCPred("$nof_threads_created", 1, p_nof_threads_created, SafePredFlag|HiddenPredFlag);
-  Yap_InitCPred("$thread_stacks", 4, p_thread_stacks, SafePredFlag|HiddenPredFlag);
-  Yap_InitCPred("$thread_runtime", 1, p_thread_runtime, SafePredFlag|HiddenPredFlag);
+  Yap_InitCPred("$max_workers", 1, p_max_workers, 0);
+  Yap_InitCPred("$thread_self", 1, p_thread_self, SafePredFlag);
+  Yap_InitCPred("$no_threads", 0, p_no_threads, SafePredFlag);
+  Yap_InitCPred("$max_threads", 1, p_max_threads, SafePredFlag);
+  Yap_InitCPred("$nof_threads", 1, p_nof_threads, SafePredFlag);
+  Yap_InitCPred("$nof_threads_created", 1, p_nof_threads_created, SafePredFlag);
+  Yap_InitCPred("$thread_stacks", 4, p_thread_stacks, SafePredFlag);
+  Yap_InitCPred("$thread_runtime", 1, p_thread_runtime, SafePredFlag);
   Yap_InitCPred("$thread_unlock", 1, p_thread_unlock, SafePredFlag);
 }
 

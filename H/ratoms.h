@@ -226,6 +226,7 @@
   AtomQuiet = AtomAdjust(AtomQuiet);
   AtomRadix = AtomAdjust(AtomRadix);
   AtomRandom = AtomAdjust(AtomRandom);
+  AtomRange = AtomAdjust(AtomRange);
   AtomRead = AtomAdjust(AtomRead);
   AtomReadutil = AtomAdjust(AtomReadutil);
   AtomRecordedP = AtomAdjust(AtomRecordedP);
@@ -289,6 +290,7 @@
   AtomSystemLibraryDir = AtomAdjust(AtomSystemLibraryDir);
   AtomTerm = AtomAdjust(AtomTerm);
   AtomTerms = AtomAdjust(AtomTerms);
+  AtomTermExpansion = AtomAdjust(AtomTermExpansion);
   AtomTextStream = AtomAdjust(AtomTextStream);
   AtomThreads = AtomAdjust(AtomThreads);
   AtomThrow = AtomAdjust(AtomThrow);
@@ -384,6 +386,7 @@
   FunctorGPrimitive = FuncAdjust(FunctorGPrimitive);
   FunctorGVar = FuncAdjust(FunctorGVar);
   FunctorGeneratePredInfo = FuncAdjust(FunctorGeneratePredInfo);
+  FunctorGoalExpansion2 = FuncAdjust(FunctorGoalExpansion2);
   FunctorGoalExpansion = FuncAdjust(FunctorGoalExpansion);
   FunctorHandleThrow = FuncAdjust(FunctorHandleThrow);
   FunctorId = FuncAdjust(FunctorId);
@@ -423,6 +426,7 @@
   FunctorStreamPos = FuncAdjust(FunctorStreamPos);
   FunctorSyntaxError = FuncAdjust(FunctorSyntaxError);
   FunctorShortSyntaxError = FuncAdjust(FunctorShortSyntaxError);
+  FunctorTermExpansion = FuncAdjust(FunctorTermExpansion);
   FunctorThreadRun = FuncAdjust(FunctorThreadRun);
   FunctorThrow = FuncAdjust(FunctorThrow);
   FunctorTimeoutError = FuncAdjust(FunctorTimeoutError);

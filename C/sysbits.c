@@ -90,7 +90,7 @@ static char SccsId[] = "%W% %G%";
 #endif
 
 
-STATIC_PROTO (void InitTime, (void));
+STATIC_PROTO (void InitTime, (int));
 STATIC_PROTO (void InitWTime, (void));
 STATIC_PROTO (Int p_sh, ( USES_REGS1 ));
 STATIC_PROTO (Int p_shell, ( USES_REGS1 ));
@@ -335,32 +335,60 @@ bla bla
 #define StartOfTimes (*(LOCAL_ThreadHandle.start_of_timesp))
 #define last_time    (*(LOCAL_ThreadHandle.last_timep))
 
+#define StartOfTimes_sys (*(LOCAL_ThreadHandle.start_of_times_sysp))
+#define last_time_sys    (*(LOCAL_ThreadHandle.last_time_sysp))
+
 #else
 /* since the point YAP was started */
 static struct timeval StartOfTimes;
 
 /* since last call to runtime */
 static struct timeval last_time;
-#endif
+
+/* same for system time */
 static struct timeval last_time_sys;
 static struct timeval StartOfTimes_sys;
+#endif
 
 /* store user time in this variable */
 static void
-InitTime (void)
+InitTime (int wid)
 {
-  CACHE_REGS
   struct rusage   rusage;
 
 #if THREADS
-  LOCAL_ThreadHandle.start_of_timesp = (struct timeval *)malloc(sizeof(struct timeval));
-  LOCAL_ThreadHandle.last_timep = (struct timeval *)malloc(sizeof(struct timeval));
-#endif
+  REMOTE_ThreadHandle(wid).start_of_timesp = (struct timeval *)malloc(sizeof(struct timeval));
+  REMOTE_ThreadHandle(wid).last_timep = (struct timeval *)malloc(sizeof(struct timeval));
+  REMOTE_ThreadHandle(wid).start_of_times_sysp = (struct timeval *)malloc(sizeof(struct timeval));
+  REMOTE_ThreadHandle(wid).last_time_sysp = (struct timeval *)malloc(sizeof(struct timeval));
   getrusage(RUSAGE_SELF, &rusage);
-  last_time.tv_sec = StartOfTimes.tv_sec = rusage.ru_utime.tv_sec;
-  last_time.tv_usec = StartOfTimes.tv_usec = rusage.ru_utime.tv_usec;
-  last_time_sys.tv_sec = StartOfTimes_sys.tv_sec = rusage.ru_stime.tv_sec;
-  last_time_sys.tv_usec = StartOfTimes_sys.tv_usec = rusage.ru_stime.tv_usec;
+  (*REMOTE_ThreadHandle(wid).last_timep).tv_sec =
+    (*REMOTE_ThreadHandle(wid).start_of_timesp).tv_sec = 
+    rusage.ru_utime.tv_sec;
+  (*REMOTE_ThreadHandle(wid).last_timep).tv_usec =
+    (*REMOTE_ThreadHandle(wid).start_of_timesp).tv_usec = 
+    rusage.ru_utime.tv_usec;
+  (*REMOTE_ThreadHandle(wid).last_time_sysp).tv_sec =
+    (*REMOTE_ThreadHandle(wid).start_of_times_sysp).tv_sec = 
+    rusage.ru_stime.tv_sec;
+  (*REMOTE_ThreadHandle(wid).last_time_sysp).tv_usec =
+    (*REMOTE_ThreadHandle(wid).start_of_times_sysp).tv_usec = 
+    rusage.ru_stime.tv_usec;
+#else
+  getrusage(RUSAGE_SELF, &rusage);
+  last_time.tv_sec =
+    StartOfTimes.tv_sec = 
+    rusage.ru_utime.tv_sec;
+  last_time.tv_usec =
+    StartOfTimes.tv_usec = 
+    rusage.ru_utime.tv_usec;
+  last_time_sys.tv_sec =
+    StartOfTimes_sys.tv_sec = 
+    rusage.ru_stime.tv_sec;
+  last_time_sys.tv_usec =
+    StartOfTimes_sys.tv_usec = 
+    rusage.ru_stime.tv_usec;  
+#endif
 }
 
 
@@ -391,6 +419,7 @@ void Yap_cputime_interval(Int *now,Int *interval)
 
 void Yap_systime_interval(Int *now,Int *interval)
 {
+  CACHE_REGS
   struct rusage   rusage;
 
   getrusage(RUSAGE_SELF, &rusage);
@@ -437,7 +466,7 @@ static clock_t TimesStartOfTimes, Times_last_time;
 
 /* store user time in this variable */
 static void
-InitTime (void)
+InitTime (int)
 {
   HANDLE hProcess = GetCurrentProcess();
   FILETIME CreationTime, ExitTime, KernelTime, UserTime;
@@ -447,14 +476,22 @@ InitTime (void)
     t = clock ();
     Times_last_time = TimesStartOfTimes = t;
   } else {
-    last_time.dwLowDateTime = UserTime.dwLowDateTime;
-    last_time.dwHighDateTime = UserTime.dwHighDateTime;
-    StartOfTimes.dwLowDateTime = UserTime.dwLowDateTime;
-    StartOfTimes.dwHighDateTime = UserTime.dwHighDateTime;
-    last_time_sys.dwLowDateTime = KernelTime.dwLowDateTime;
-    last_time_sys.dwHighDateTime = KernelTime.dwHighDateTime;
-    StartOfTimes_sys.dwLowDateTime = KernelTime.dwLowDateTime;
-    StartOfTimes_sys.dwHighDateTime = KernelTime.dwHighDateTime;
+    (*REMOTE_ThreadHandle(wid).last_timep).dwLowDateTime = 
+      UserTime.dwLowDateTime;
+    (*REMOTE_ThreadHandle(wid).last_timep).dwHighDateTime =
+      UserTime.dwHighDateTime;
+    (*REMOTE_ThreadHandle(wid).start_of_timesp).dwLowDateTime =
+      UserTime.dwLowDateTime;
+    (*REMOTE_ThreadHandle(wid).start_of_timesp).dwHighDateTime = 
+      UserTime.dwHighDateTime;
+    (*REMOTE_ThreadHandle(wid).last_time_sysp).dwLowDateTime =
+      KernelTime.dwLowDateTime;
+    (*REMOTE_ThreadHandle(wid).last_time_sysp).dwHighDateTime = 
+      KernelTime.dwHighDateTime;
+    (*REMOTE_ThreadHandle(wid).start_of_times_sysp).dwLowDateTime =
+      KernelTime.dwLowDateTime;
+    (*REMOTE_ThreadHandle(wid).start_of_times_sysp).dwHighDateTime = 
+      KernelTime.dwHighDateTime;
   }
 }
 
@@ -604,7 +641,7 @@ InitTime (void)
 {
   struct tms t;
   times (&t);
-  last_time = StartOfTimes = t.tms_utime;
+  (*REMOTE_ThreadHandle(wid).last_timep) = StartOfTimes = t.tms_utime;
   last_time_sys = StartOfTimes_sys = t.tms_stime;
 }
 
@@ -648,13 +685,13 @@ static struct timeval last_time;
 
 /* store user time in this variable */
 static void
-InitTime (void)
+InitTime (int wid)
 {
   struct timeval   tp;
 
   gettimeofday(&tp,NULL);
-  last_time.tv_sec = StartOfTimes.tv_sec = tp.tv_sec;
-  last_time.tv_usec = StartOfTimes.tv_usec = tp.tv_usec;
+  (*REMOTE_ThreadHandle(wid).last_timep).tv_sec = (*REMOTE_ThreadHandle.start_of_timesp(wid)).tv_sec = tp.tv_sec;
+  (*REMOTE_ThreadHandle(wid).last_timep).tv_usec = (*REMOTE_ThreadHandle.start_of_timesp(wid)).tv_usec = tp.tv_usec;
 }
 
 
@@ -2730,9 +2767,9 @@ Yap_InitSysbits (void)
 }
 
 void
-Yap_InitTime(void)
+Yap_InitTime( int wid )
 {
-  InitTime();
+  InitTime( wid );
 }
 
 void
@@ -3226,18 +3263,18 @@ Yap_InitSysPreds(void)
   InitLastWtime();
   Yap_InitCPred ("srandom", 1, p_srandom, SafePredFlag);
   Yap_InitCPred ("sh", 0, p_sh, SafePredFlag|SyncPredFlag);
-  Yap_InitCPred ("$shell", 1, p_shell, SafePredFlag|SyncPredFlag|HiddenPredFlag);
+  Yap_InitCPred ("$shell", 1, p_shell, SafePredFlag|SyncPredFlag);
   Yap_InitCPred ("system", 1, p_system, SafePredFlag|SyncPredFlag);
   Yap_InitCPred ("rename", 2, p_mv, SafePredFlag|SyncPredFlag);
-  Yap_InitCPred ("$yap_home", 1, p_yap_home, SafePredFlag|SyncPredFlag|HiddenPredFlag);
-  Yap_InitCPred ("$dir_separator", 1, p_dir_sp, SafePredFlag|HiddenPredFlag);
-  Yap_InitCPred ("$alarm", 4, p_alarm, SafePredFlag|SyncPredFlag|HiddenPredFlag);
-  Yap_InitCPred ("$getenv", 2, p_getenv, SafePredFlag|HiddenPredFlag);
-  Yap_InitCPred ("$putenv", 2, p_putenv, SafePredFlag|SyncPredFlag|HiddenPredFlag);
-  Yap_InitCPred ("$set_fpu_exceptions", 0, p_set_fpu_exceptions, SafePredFlag|SyncPredFlag|HiddenPredFlag);
-  Yap_InitCPred ("$first_signal", 1, p_first_signal, SafePredFlag|SyncPredFlag|HiddenPredFlag);
-  Yap_InitCPred ("$host_type", 1, p_host_type, SafePredFlag|SyncPredFlag|HiddenPredFlag);
-  Yap_InitCPred ("$continue_signals", 0, p_continue_signals, SafePredFlag|SyncPredFlag|HiddenPredFlag);
+  Yap_InitCPred ("$yap_home", 1, p_yap_home, SafePredFlag|SyncPredFlag);
+  Yap_InitCPred ("$dir_separator", 1, p_dir_sp, SafePredFlag);
+  Yap_InitCPred ("$alarm", 4, p_alarm, SafePredFlag|SyncPredFlag);
+  Yap_InitCPred ("$getenv", 2, p_getenv, SafePredFlag);
+  Yap_InitCPred ("$putenv", 2, p_putenv, SafePredFlag|SyncPredFlag);
+  Yap_InitCPred ("$set_fpu_exceptions", 0, p_set_fpu_exceptions, SafePredFlag|SyncPredFlag);
+  Yap_InitCPred ("$first_signal", 1, p_first_signal, SafePredFlag|SyncPredFlag);
+  Yap_InitCPred ("$host_type", 1, p_host_type, SafePredFlag|SyncPredFlag);
+  Yap_InitCPred ("$continue_signals", 0, p_continue_signals, SafePredFlag|SyncPredFlag);
   Yap_InitCPred ("$env_separator", 1, p_env_separator, SafePredFlag);
   Yap_InitCPred ("$unix", 0, p_unix, SafePredFlag);
   Yap_InitCPred ("$win32", 0, p_win32, SafePredFlag);
@@ -3247,7 +3284,7 @@ Yap_InitSysPreds(void)
   Yap_InitCPred ("win_registry_get_value", 3, p_win_registry_get_value,0);
 #endif
   CurrentModule = HACKS_MODULE;
-  Yap_InitCPred ("virtual_alarm", 4, p_virtual_alarm, SafePredFlag|SyncPredFlag|HiddenPredFlag);
+  Yap_InitCPred ("virtual_alarm", 4, p_virtual_alarm, SafePredFlag|SyncPredFlag);
   Yap_InitCPred ("enable_interrupts", 0, p_enable_interrupts, SafePredFlag);
   Yap_InitCPred ("disable_interrupts", 0, p_disable_interrupts, SafePredFlag);
   CurrentModule = OPERATING_SYSTEM_MODULE;

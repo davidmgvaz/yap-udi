@@ -934,6 +934,9 @@ read_pred(IOSTREAM *stream, Term mod) {
   if (flags & MultiFileFlag && ap->ModuleOfPred == PROLOG_MODULE)
     ap->ModuleOfPred = TermProlog;
   read_clauses(stream, ap, nclauses, flags);
+  if (flags & HiddenPredFlag) {
+    Yap_HidePred(ap);
+  }
 }
 
 static void
@@ -1005,7 +1008,7 @@ ReInitProlog(void)
 #if defined(YAPOR) || defined(TABLING)
   Yap_init_root_frames();
 #endif /* YAPOR || TABLING */
-  Yap_InitYaamRegs();
+  Yap_InitYaamRegs( 0 );
   YAP_RunGoalOnce(t);
 }
 
@@ -1054,8 +1057,8 @@ Yap_Restore(char *s, char *lib_dir)
 
 void Yap_InitQLYR(void)
 {
-  Yap_InitCPred("$qload_module_preds", 1, p_read_module_preds, SyncPredFlag|HiddenPredFlag|UserCPredFlag);
-  Yap_InitCPred("$qload_program", 1, p_read_program, SyncPredFlag|HiddenPredFlag|UserCPredFlag);
+  Yap_InitCPred("$qload_module_preds", 1, p_read_module_preds, SyncPredFlag|UserCPredFlag);
+  Yap_InitCPred("$qload_program", 1, p_read_program, SyncPredFlag|UserCPredFlag);
   if (FALSE) {
     restore_codes();
   }

@@ -856,7 +856,10 @@ Yap_absmi(int inp)
 
       BOp(Ystop, l);
       SET_ASP(YREG, E_CB*sizeof(CELL));
+      /* make sure ASP is initialised */
+      Yap_StartSlots( PASS_REGS1 );
       saveregs();
+      
 #if PUSH_REGS
       restore_absmi_regs(old_regs);
 #endif
@@ -2164,7 +2167,7 @@ Yap_absmi(int inp)
 	      } else {
 		DynamicClause *cl = ClauseFlagsToDynamicClause(pt1);
 		int erase;
-		  
+		
 		LOCK(cl->ClLock);
 		DEC_CLREF_COUNT(cl);
 		erase = (cl->ClFlags & ErasedMask) && !(cl->ClRefCount);
@@ -2249,7 +2252,7 @@ Yap_absmi(int inp)
       PREG = NEXTOP(NEXTOP(NEXTOP(PREG, s),Osbpp),l);
       /* assume cut is always in stack */
       saveregs();
-      prune((choiceptr)YREG[E_CB]);
+      prune((choiceptr)YREG[E_CB] PASS_REGS);
       setregs();
       GONext();
       ENDOp();
@@ -2268,7 +2271,7 @@ Yap_absmi(int inp)
       SET_ASP(YREG, PREG->u.s.s);
       /* assume cut is always in stack */
       saveregs();
-      prune((choiceptr)YREG[E_CB]);
+      prune((choiceptr)YREG[E_CB] PASS_REGS);
       setregs();
       PREG = NEXTOP(NEXTOP(NEXTOP(PREG, s),Osbpp),l);
       GONext();
@@ -2287,7 +2290,7 @@ Yap_absmi(int inp)
       SET_ASP(YREG, PREG->u.s.s);
       PREG = NEXTOP(NEXTOP(NEXTOP(PREG, s),Osbpp),l);
       saveregs();
-      prune((choiceptr)SREG[E_CB]);
+      prune((choiceptr)SREG[E_CB] PASS_REGS);
       setregs();
       GONext();
       ENDOp();
@@ -2340,7 +2343,7 @@ Yap_absmi(int inp)
 	pt0 = (choiceptr)(LCL0-IntegerOfTerm(d0));
 #endif /* YAPOR_SBA && FROZEN_STACKS */
 	saveregs();
-	prune(pt0);
+	prune(pt0 PASS_REGS);
 	setregs();
       }
       GONext();
@@ -2376,7 +2379,7 @@ Yap_absmi(int inp)
 	pt0 = (choiceptr)(LCL0-IntegerOfTerm(d0));
 #endif
 	saveregs();
-	prune(pt0);
+	prune(pt0 PASS_REGS);
 	setregs();
       }
       GONext();
@@ -2945,45 +2948,8 @@ Yap_absmi(int inp)
       if (LOCAL_ActiveSignals & YAP_CREEP_SIGNAL) {
 	PredEntry *ap = PREG->u.pp.p;
 
-	if (ap->PredFlags & HiddenPredFlag) {
-	  CACHE_Y_AS_ENV(YREG);
-	  CACHE_A1();
-	  check_depth(DEPTH, ap);
-	  PREG = ap->CodeOfPred;
-	  /* for profiler */
-	  save_pc();
-	  ALWAYS_LOOKAHEAD(ap->OpcodeOfPred);
-	  /* do deallocate */
-	  CPREG = (yamop *) ENV_YREG[E_CP];
-	  ENV_YREG = ENV = (CELL *) ENV_YREG[E_E];
-#ifdef FROZEN_STACKS
-	  { 
-	    choiceptr top_b = PROTECT_FROZEN_B(B);
-
-#ifdef YAPOR_SBA
-	    if (ENV_YREG > (CELL *) top_b || ENV_YREG < H) ENV_YREG = (CELL *) top_b;
-#else
-	    if (ENV_YREG > (CELL *) top_b) ENV_YREG = (CELL *) top_b;
-#endif
-	    else ENV_YREG = (CELL *)((CELL)ENV_YREG + ENV_Size(CPREG));
-	  }
-#else
-	  if (ENV_YREG > (CELL *)B) {
-	    ENV_YREG = (CELL *)B;
-	  } else {
-	    ENV_YREG = (CELL *) ((CELL) ENV_YREG + ENV_Size(CPREG));
-	  }
-#endif /* FROZEN_STACKS */
-	  WRITEBACK_Y_AS_ENV();
-	  /* setup GB */
-	  ENV_YREG[E_CB] = (CELL) B;
-	  ALWAYS_GONext();
-	  ALWAYS_END_PREFETCH();
-	  ENDCACHE_Y_AS_ENV();
-	} else {
-	  SREG = (CELL *) ap;
-	  goto creepde;
-	}
+	SREG = (CELL *) ap;
+	goto creepde;
       }
       /* set SREG for next instructions */
       SREG = (CELL *) PREG->u.p.p;
@@ -6915,7 +6881,7 @@ Yap_absmi(int inp)
 
       BOp(call_cpred, Osbpp);
       check_trail(TR);
-      if (!(PREG->u.Osbpp.p->PredFlags & (SafePredFlag|HiddenPredFlag))) {
+      if (!(PREG->u.Osbpp.p->PredFlags & (SafePredFlag))) {
 	CACHE_Y_AS_ENV(YREG);
 	check_stack(NoStackCall, H);
 	ENDCACHE_Y_AS_ENV();
@@ -13114,7 +13080,7 @@ Yap_absmi(int inp)
 	  if (pen->FunctorOfPred == (Functor)AtomCut) {
 	    if (b_ptr != B) {
 	      saveregs();
-	      prune(b_ptr);
+	      prune(b_ptr PASS_REGS);
 	      setregs();
 	    }
 	  }

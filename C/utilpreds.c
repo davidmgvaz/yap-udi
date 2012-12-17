@@ -4694,7 +4694,7 @@ static Int numbervars_in_complex_term(register CELL *pt0, register CELL *pt0_end
     goto loop;
   }
 
-  prune(B);
+  prune(B PASS_REGS);
   Yap_ReleasePreAllocCodeSpace((ADDR)to_visit0);
   return numbv;
 
@@ -5148,8 +5148,43 @@ static Int
 p_skip_list( USES_REGS1 ) {
   Term *tail;
   Int len = Yap_SkipList(XREGS+2, &tail);
+
   return Yap_unify(MkIntegerTerm(len), ARG1) &&
     Yap_unify(*tail, ARG3);
+}
+
+static Int 
+p_skip_list4( USES_REGS1 ) {
+  Term *tail;
+  Int len, len1 = -1;
+  Term t2 = Deref(ARG2), t;
+
+  if (!IsVarTerm(t2)) {
+    if (!IsIntegerTerm(t2)) {
+      Yap_Error(TYPE_ERROR_INTEGER, t2, "length/2");
+      return FALSE;
+    }
+    if ((len1 = IntegerOfTerm(t2)) < 0) {
+      Yap_Error(DOMAIN_ERROR_NOT_LESS_THAN_ZERO, t2, "length/2");
+      return FALSE;
+    }
+  }
+  /* we need len here */
+  len = Yap_SkipList(XREGS+1, &tail);
+  t = *tail;
+  /* don't set M0 if full list, just check M */
+  if (t == TermNil) {
+    if (len1 >= 0) { /* ARG2 was bound */
+      return
+	len1 == len &&
+	Yap_unify(t, ARG4);
+    } else {
+      return Yap_unify_constant(ARG4, TermNil) &&
+	Yap_unify_constant(ARG2, MkIntegerTerm(len));
+    }
+  }
+  return Yap_unify(MkIntegerTerm(len), ARG3) &&
+    Yap_unify(t, ARG4);
 }
 
 void Yap_InitUtilCPreds(void)
@@ -5160,8 +5195,8 @@ void Yap_InitUtilCPreds(void)
   Yap_InitCPred("duplicate_term", 2, p_duplicate_term, 0);
   Yap_InitCPred("copy_term_nat", 2, p_copy_term_no_delays, 0);
   Yap_InitCPred("ground", 1, p_ground, SafePredFlag);
-  Yap_InitCPred("$variables_in_term", 3, p_variables_in_term, HiddenPredFlag);
-  Yap_InitCPred("$non_singletons_in_term", 3, p_non_singletons_in_term, HiddenPredFlag);
+  Yap_InitCPred("$variables_in_term", 3, p_variables_in_term, 0);
+  Yap_InitCPred("$non_singletons_in_term", 3, p_non_singletons_in_term, 0);
   Yap_InitCPred("term_variables", 2, p_term_variables, 0);
   Yap_InitCPred("term_variables", 3, p_term_variables3, 0);
   Yap_InitCPred("term_attvars", 2, p_term_attvars, 0);
@@ -5174,6 +5209,7 @@ void Yap_InitUtilCPreds(void)
   Yap_InitCPred("unnumbervars", 2, p_unnumbervars, 0);
   /* use this carefully */
   Yap_InitCPred("$skip_list", 3, p_skip_list, SafePredFlag|TestPredFlag);
+  Yap_InitCPred("$skip_list", 4, p_skip_list4, SafePredFlag|TestPredFlag);
   CurrentModule = TERMS_MODULE;
   Yap_InitCPred("variable_in_term", 2, p_var_in_term, 0);
   Yap_InitCPred("term_hash", 4, p_term_hash, 0);
@@ -5188,7 +5224,7 @@ void Yap_InitUtilCPreds(void)
   Yap_InitCPred("import_term", 2, p_import_term, 0);
   CurrentModule = cm;
 #ifdef DEBUG
-  Yap_InitCPred("$force_trail_expansion", 1, p_force_trail_expansion, SafePredFlag|HiddenPredFlag);
+  Yap_InitCPred("$force_trail_expansion", 1, p_force_trail_expansion, SafePredFlag);
   Yap_InitCPred("dum", 1, camacho_dum, SafePredFlag);
 #endif
 }
